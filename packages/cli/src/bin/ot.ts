@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 
+import { jobs, models } from '../commands/catalog.js';
 import { login } from '../commands/login.js';
 import { switchOrg, whoami } from '../commands/session.js';
 import { transcribe } from '../commands/transcribe.js';
@@ -15,6 +16,9 @@ Usage
   ot logout [--org <id>]       forget one workspace, or all of them
   ot whoami                    show signed-in workspaces
   ot switch <org-id>           choose which workspace commands use
+
+  ot models [--language es]    list models with prices
+  ot jobs [--limit 10]         recent transcriptions
 
   ot transcribe <file>         transcribe audio; writes artifacts next to it
     --model <id>               e.g. auto/best, auto/cheapest, openai/whisper-large-v3
@@ -34,6 +38,7 @@ const options = {
   out: { type: 'string' },
   diarize: { type: 'boolean' },
   all: { type: 'boolean' },
+  limit: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -73,6 +78,18 @@ const main = async (argv: string[]): Promise<number> => {
 
     case 'switch':
       return switchOrg(target);
+
+    case 'models':
+      return models({
+        orgId: values.org as string | undefined,
+        language: values.language as string | undefined,
+      });
+
+    case 'jobs':
+      return jobs({
+        orgId: values.org as string | undefined,
+        ...(values.limit === undefined ? {} : { limit: Number(values.limit) }),
+      });
 
     case 'transcribe': {
       if (!target) {

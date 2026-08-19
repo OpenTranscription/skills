@@ -47,6 +47,15 @@ export type Job = {
   [key: string]: unknown;
 };
 
+export type CatalogModel = {
+  id: string;
+  display_name?: string;
+  provider?: string;
+  cost_per_second?: number;
+  languages?: string[];
+  [key: string]: unknown;
+};
+
 export type WaitOptions = {
   pollIntervalMs?: number;
   signal?: AbortSignal;
@@ -167,6 +176,20 @@ export class OpenTranscription {
           : { diarization: input.diarization }),
       }),
     });
+  }
+
+  /** The public model catalogue: ids, pricing, languages, measured accuracy. */
+  async listModels(): Promise<CatalogModel[]> {
+    const body = await this.#api<{ data?: CatalogModel[] }>('/v1/models');
+    return body.data ?? [];
+  }
+
+  /** Recent jobs, newest first. */
+  async listJobs(limit = 10): Promise<Job[]> {
+    const body = await this.#api<{ data?: Job[] }>(
+      `/v1/transcriptions?limit=${encodeURIComponent(String(limit))}`
+    );
+    return body.data ?? [];
   }
 
   async getJob(id: string): Promise<Job> {
