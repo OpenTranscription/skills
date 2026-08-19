@@ -125,8 +125,21 @@ Both packages share one version and are always published together. `ot` pins
 that pin in step with the bump; a stale pin would ship a CLI wired to the
 previous SDK, which the workspace symlink hides from every local test.
 
-Releasing needs one repository secret, `NPM_TOKEN` — an npm **automation** token
-for the `@opentranscription` org, since a publish token that prompts for 2FA
-cannot work unattended.
+Publishing uses npm **trusted publishing**, so there is no `NPM_TOKEN` and no
+secret of any kind. `release.yml` requests an OIDC token from GitHub, and npm
+exchanges it for publish rights scoped to this repository and that one workflow
+file. Nothing long-lived exists to leak, rotate, or forget to renew.
+
+Setting it up is per package and one-time. On npmjs.com, under
+**Packages → @opentranscription/sdk → Settings → Trusted publishing** (and the
+same for `cli`), add a GitHub Actions publisher pointing at
+`OpenTranscription/skills` with workflow `release.yml`. The filename must match
+exactly, extension included. The package has to exist on the registry before it
+has a settings page, so the first version of a brand-new package is published by
+hand.
+
+Provenance attestations come free with trusted publishing, but npm only
+generates them for public repositories. While this repo is private the releases
+are unsigned; flipping it public turns provenance on with no further change.
 
 MIT licensed.

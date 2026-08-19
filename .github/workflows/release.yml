@@ -11,28 +11,44 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  # semantic-release's git plugin pushes the release commit; its github plugin
+  # creates the GitHub Release that stands in for a CHANGELOG file.
   contents: write
-  issues: write
-  pull-requests: write
+  # Mints the short-lived OIDC token npm exchanges for publish rights. This is
+  # the entirety of our npm authentication — there is deliberately no NPM_TOKEN
+  # secret to leak, rotate, or forget to renew.
   id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # semantic-release reads the whole history to find the last release.
           fetch-depth: 0
           # Its own git plugin pushes the release commit; the checkout token
           # would otherwise shadow the one it is configured with.
           persist-credentials: false
-      - uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
-          cache: npm
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          # npm's own guidance for release builds. A restored cache is one more
+          # input that can differ from the one the verification steps audited.
+          package-manager-cache: false
+
+      # Trusted publishing needs npm >= 11.5.1. Node 24 ships a new enough npm
+      # today, but that is a property of whichever 24.x setup-node happens to
+      # resolve, not a guarantee. Pinning the floor turns a future silent auth
+      # failure into a non-event.
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
+
       - run: npm ci
+
       # Publishing something that does not build or pass its tests is worse than
       # not publishing: npm versions cannot be replaced, only deprecated.
       - run: npm run typecheck
@@ -40,8 +56,11 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
+
+      # No NPM_TOKEN. The npm CLI detects the OIDC environment and exchanges the
+      # id-token above for a publish credential scoped to this repository and
+      # this workflow file. Both packages must have a trusted publisher pointing
+      # at `release.yml` configured on npmjs.com or the publish is rejected.
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
