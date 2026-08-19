@@ -1,0 +1,56 @@
+{
+  "repositoryUrl": "https://github.com/OpenTranscription/skills",
+  "branches": ["main"],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "angular",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "revert", "release": "patch" },
+          { "type": "refactor", "release": "patch" },
+          { "type": "docs", "release": false },
+          { "type": "style", "release": false },
+          { "type": "chore", "release": false },
+          { "type": "test", "release": false },
+          { "type": "build", "release": false },
+          { "type": "ci", "release": false }
+        ]
+      }
+    ],
+    ["@semantic-release/release-notes-generator", { "preset": "angular" }],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# OpenTranscription Skills Changelog\n\nAll notable changes to `@opentranscription/sdk`, `@opentranscription/cli` and the\nbundled Agent Skill are documented in this file.\n\nThe two packages share one version number: they are released together, and the\nCLI pins the SDK exactly. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node scripts/set-version.mjs ${nextRelease.version} && npm install --package-lock-only --ignore-scripts",
+        "publishCmd": "npm publish -w @opentranscription/sdk && npm publish -w @opentranscription/cli"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "package.json",
+          "package-lock.json",
+          "packages/*/package.json"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      { "successComment": false, "releasedLabels": false }
+    ]
+  ]
+}

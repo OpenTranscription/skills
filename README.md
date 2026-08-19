@@ -14,11 +14,11 @@ ot transcribe interview.mp3
 
 Three things that share one core:
 
-| | |
-| --- | --- |
-| **The skill** | `skills/transcribing-audio` — teaches an agent when and how to reach for transcription |
-| **`@opentranscription/cli`** | the `ot` command, which is what the skill actually runs |
-| **`@opentranscription/sdk`** | the typed client, if you would rather write the code yourself |
+|                              |                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| **The skill**                | `skills/transcribing-audio` — teaches an agent when and how to reach for transcription |
+| **`@opentranscription/cli`** | the `ot` command, which is what the skill actually runs                                |
+| **`@opentranscription/sdk`** | the typed client, if you would rather write the code yourself                          |
 
 ## Where it works
 
@@ -83,9 +83,45 @@ shows up as a compile error rather than a surprise at runtime.
 
 ```
 npm install
+npm run typecheck
+npm run lint
 npm test
 npm run build
 npm run typegen    # regenerate types from the live spec
 ```
+
+Husky runs the same gate the product repo does: `lint-staged` on commit (eslint
+`--fix` then prettier, on staged files only), commitlint on the message, and
+typecheck plus lint plus the full suite on push. CI runs the identical steps, so
+a green pre-push means a green build.
+
+## Releasing
+
+Merging to `main` releases. [semantic-release](https://semantic-release.gitbook.io)
+reads the commit messages, picks the next version, writes `CHANGELOG.md`, tags,
+cuts a GitHub release, and publishes both packages to npm. Nobody edits a version
+number by hand.
+
+Which means the commit message _is_ the release decision:
+
+| Commit type                                           | Effect     |
+| ----------------------------------------------------- | ---------- |
+| `feat:`                                               | minor bump |
+| `fix:`, `perf:`, `refactor:`, `revert:`               | patch bump |
+| `docs:`, `style:`, `test:`, `build:`, `ci:`, `chore:` | no release |
+| any type with `BREAKING CHANGE:` in the body          | major bump |
+
+commitlint enforces the format twice: a husky `commit-msg` hook locally, and a
+CI job over every commit in a pull request, because the hook is skippable and a
+malformed type fails silently — it cuts no release at all rather than erroring.
+
+Both packages share one version and are always published together. `ot` pins
+`@opentranscription/sdk` to an exact version, and `scripts/setVersion.mjs` keeps
+that pin in step with the bump; a stale pin would ship a CLI wired to the
+previous SDK, which the workspace symlink hides from every local test.
+
+Releasing needs one repository secret, `NPM_TOKEN` — an npm **automation** token
+for the `@opentranscription` org, since a publish token that prompts for 2FA
+cannot work unattended.
 
 MIT licensed.
