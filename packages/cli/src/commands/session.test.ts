@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { loadCredentials, saveCredential } from '../credentials.js';
-
 import { switchOrg, whoami } from './session.js';
 
 let dir: string;

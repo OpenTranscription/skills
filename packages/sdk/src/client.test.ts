@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { OpenTranscription } from './client.js';
 
@@ -14,7 +14,10 @@ const stubFetch = (
   routes: Record<string, () => Response>
 ): { fetch: typeof fetch; calls: Call[] } => {
   const calls: Call[] = [];
-  const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchImpl = (async (
+    input: Parameters<typeof fetch>[0],
+    init?: RequestInit
+  ) => {
     const url = typeof input === 'string' ? input : input.toString();
     calls.push({ url, init });
     const key = Object.keys(routes).find((r) => url.includes(r));

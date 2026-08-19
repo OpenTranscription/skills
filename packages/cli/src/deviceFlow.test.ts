@@ -27,7 +27,7 @@ const harness = (tokenResponses: Array<() => Response>) => {
   const sleeps: number[] = [];
   let n = 0;
 
-  const fetchImpl = (async (input: RequestInfo | URL) => {
+  const fetchImpl = (async (input: Parameters<typeof fetch>[0]) => {
     const url = input.toString();
     if (url.endsWith('/api/v1/device/code')) return json(CODE_RESPONSE);
     if (url.endsWith('/api/v1/device/token')) return tokenResponses[n++]!();
