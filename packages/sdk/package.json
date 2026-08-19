@@ -7,6 +7,19 @@
   "engines": {
     "node": ">=20"
   },
+  "keywords": [
+    "transcription",
+    "speech-to-text",
+    "stt",
+    "whisper",
+    "deepgram",
+    "assemblyai",
+    "opentranscription"
+  ],
+  "homepage": "https://opentranscription.io",
+  "bugs": {
+    "url": "https://github.com/OpenTranscription/skills/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -16,14 +29,20 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OpenTranscription/skills.git",
     "directory": "packages/sdk"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
   }
 }
