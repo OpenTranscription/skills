@@ -85,6 +85,34 @@ describe('transcribe', () => {
   });
 
   /**
+   * The upload route requires file_name, file_size and mime_type, and answers a
+   * bare "Validation error" when any is missing or renamed. Nothing in a mocked
+   * happy path notices that, so the field names are pinned here.
+   */
+  it('sends exactly the fields the upload route requires', async () => {
+    const { fetch, calls } = stubFetch({
+      '/api/v1/uploads': () =>
+        json({
+          upload_url: 'https://storage.test/put/abc',
+          file_path: 'p.mp3',
+        }),
+      'storage.test': () => new Response(null, { status: 200 }),
+      '/api/v1/transcriptions': () => json({ id: 'j', status: 'queued' }),
+    });
+
+    await client(fetch).transcribe({
+      file: new Uint8Array([1, 2, 3, 4, 5]),
+      fileName: 'a.mp3',
+    });
+
+    expect(JSON.parse(calls[0]!.init!.body as string)).toEqual({
+      file_name: 'a.mp3',
+      file_size: 5,
+      mime_type: 'audio/mpeg',
+    });
+  });
+
+  /**
    * The upload URL is already signed. Attaching the API key to it would send a
    * live credential to a host that never needs it, and storage would reject or
    * ignore it either way.
@@ -127,6 +155,63 @@ describe('transcribe', () => {
     await expect(
       client(fetch).transcribe({ file: new Uint8Array([1]), fileName: 'a.mp3' })
     ).rejects.toMatchObject({ status: 402, code: 'FREE_MINUTES_EXHAUSTED' });
+  });
+});
+
+describe('rate limiting', () => {
+  /**
+   * The free tier allows 10 requests a minute, which one `ot transcribe` can
+   * reach on its own: uploads, transcriptions, then a poll every couple of
+   * seconds. Surfacing that to the agent as a failure would be blaming the user
+   * for the client's own pacing.
+   */
+  it('waits and retries instead of failing on a 429', async () => {
+    const sleeps: number[] = [];
+    let attempt = 0;
+    const { fetch } = stubFetch({
+      '/api/v1/transcriptions/job-1': () => {
+        attempt += 1;
+        return attempt === 1
+          ? new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+              status: 429,
+              headers: { 'retry-after': '2' },
+            })
+          : json({ id: 'job-1', status: 'completed' });
+      },
+    });
+
+    const ot = new OpenTranscription({
+      apiKey: 'ot_test',
+      baseUrl: 'https://api.test',
+      fetch,
+      sleep: async (ms: number) => {
+        sleeps.push(ms);
+      },
+    });
+
+    await expect(ot.getJob('job-1')).resolves.toMatchObject({
+      status: 'completed',
+    });
+    expect(sleeps).toEqual([2000]);
+  });
+
+  it('gives up rather than retrying forever', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/transcriptions/job-1': () =>
+        new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+          status: 429,
+          headers: { 'retry-after': '1' },
+        }),
+    });
+
+    const ot = new OpenTranscription({
+      apiKey: 'ot_test',
+      baseUrl: 'https://api.test',
+      fetch,
+      sleep: async () => {},
+    });
+
+    await expect(ot.getJob('job-1')).rejects.toMatchObject({ status: 429 });
   });
 });
 

@@ -24,6 +24,14 @@ export type Section = { start: number; label: string };
 /** A pause at least this long reads as a topic change. */
 const SILENCE_GAP_SECONDS = 8;
 
+/**
+ * A section has to be worth jumping to. Without this, a rapid exchange produces
+ * one entry every couple of seconds — a second transcript rather than a way to
+ * navigate the first. Found on a real 6-minute recording that yielded 50-odd
+ * sections labelled "Where?" and "To—".
+ */
+const MIN_SECTION_SECONDS = 30;
+
 const MAX_LABEL_CHARS = 80;
 
 /** Rough token estimate; ~4 chars per token is close enough to pick a branch. */
@@ -43,18 +51,22 @@ export const buildSections = (segments: Segment[]): Section[] => {
   const sections: Section[] = [];
   let previous: Segment | undefined;
 
+  let sectionStart = Number.NEGATIVE_INFINITY;
+
   for (const segment of segments) {
     const speakerChanged =
       previous !== undefined && segment.speaker !== previous.speaker;
     const longPause =
       previous !== undefined &&
       segment.start - previous.end >= SILENCE_GAP_SECONDS;
+    const matured = segment.start - sectionStart >= MIN_SECTION_SECONDS;
 
-    if (previous === undefined || speakerChanged || longPause) {
+    if (previous === undefined || ((speakerChanged || longPause) && matured)) {
       sections.push({
         start: segment.start,
         label: firstSentence(segment.text),
       });
+      sectionStart = segment.start;
     }
 
     previous = segment;

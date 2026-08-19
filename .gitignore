@@ -1,3 +1,6 @@
 dist/
 node_modules/
 *.tsbuildinfo
+
+# Local end-to-end scratch (real audio, real transcripts)
+tmp-e2e/
