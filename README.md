@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-dark.png">
+  <img alt="OpenTranscription — every speech-to-text model worth using, one command" src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
+</picture>
+
 # OpenTranscription skills
 
 [![cli](https://img.shields.io/npm/v/@opentranscription/cli?label=cli)](https://www.npmjs.com/package/@opentranscription/cli)
@@ -11,14 +16,59 @@ typed SDK for [OpenTranscription](https://opentranscription.io).
 Works in Claude Code, Codex, Cursor, Gemini CLI, VS Code / Copilot, Windsurf,
 Cline, and Zed.
 
-```
-npx skills add opentranscription/skills
+## Install
+
+Two steps. The first gives you the `ot` command, the second teaches your agent
+when to reach for it.
+
+```bash
 npm install -g @opentranscription/cli
 ot login
-ot transcribe interview.mp3
 ```
 
-An hour-long meeting comes back like this:
+`ot login` prints a code, opens your browser, and you approve the terminal from
+a page you are already signed in to. Nothing is pasted anywhere.
+
+```bash
+npx skills add opentranscription/skills
+```
+
+That is it. The installer detects which agents you have and writes the skill
+where each one looks for it.
+
+<details>
+<summary>If it does not detect your agent, or you want to choose</summary>
+
+Target agents explicitly with `-a`:
+
+```bash
+npx skills add opentranscription/skills -a claude-code
+npx skills add opentranscription/skills -a codex
+npx skills add opentranscription/skills -a cursor -a cline
+```
+
+Add `-g` to install for every project instead of just this one, and `-y` to
+skip the confirmation prompt.
+
+Where the files land, per agent:
+
+| Agent       | This project      | Global (`-g`)                |
+| ----------- | ----------------- | ---------------------------- |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/`          |
+| Cursor      | `.agents/skills/` | `~/.cursor/skills/`          |
+| Cline       | `.agents/skills/` | `~/.agents/skills/`          |
+| OpenCode    | `.agents/skills/` | `~/.config/opencode/skills/` |
+
+The [skills CLI](https://github.com/vercel-labs/skills) supports 76 agents; its
+README carries the full table.
+
+</details>
+
+Requires Node 22 or newer.
+
+## Why you need it
+
+Ask your agent to transcribe a meeting and it runs one command:
 
 ```
 $ ot transcribe meeting.mp3
@@ -41,7 +91,7 @@ The transcript, subtitles, and section index are on disk. The agent spent a
 filename instead of the ~10,400 tokens that transcript would have cost it, and
 it knows where to look next.
 
-## Why a CLI and not an API call
+## How it works
 
 Transcripts are long, and a model that reads one has spent its context on the
 least useful shape of the work. `ot` always writes the artifacts to disk and

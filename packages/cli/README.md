@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-dark.png">
+  <img alt="OpenTranscription CLI — transcribe audio from your terminal" src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
+</picture>
+
 # @opentranscription/cli
 
 [![npm](https://img.shields.io/npm/v/@opentranscription/cli)](https://www.npmjs.com/package/@opentranscription/cli)

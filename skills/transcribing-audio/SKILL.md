@@ -22,7 +22,7 @@ If that fails, install it:
 npm install -g @opentranscription/cli
 ```
 
-If `npm` is also missing, stop and tell the user Node.js 20+ is required —
+If `npm` is also missing, stop and tell the user Node.js 22+ is required —
 guessing at a package manager wastes a turn and usually installs nothing.
 
 Then check for a signed-in account:
