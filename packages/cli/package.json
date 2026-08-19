@@ -1,0 +1,13 @@
+{
+  "name": "@opentranscription/cli",
+  "version": "0.1.0",
+  "description": "Transcribe audio from your terminal or coding agent — the `ot` command.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "ot": "./dist/bin/ot.js" },
+  "files": ["dist"],
+  "dependencies": { "@opentranscription/sdk": "0.1.0" },
+  "repository": { "type": "git", "url": "git+https://github.com/OpenTranscription/skills.git", "directory": "packages/cli" },
+  "scripts": { "build": "tsc -p tsconfig.json" }
+}
