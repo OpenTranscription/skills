@@ -1,4 +1,3 @@
 dist/
 node_modules/
 packages/sdk/src/generated/
-CHANGELOG.md

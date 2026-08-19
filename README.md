@@ -98,9 +98,14 @@ a green pre-push means a green build.
 ## Releasing
 
 Merging to `main` releases. [semantic-release](https://semantic-release.gitbook.io)
-reads the commit messages, picks the next version, writes `CHANGELOG.md`, tags,
-cuts a GitHub release, and publishes both packages to npm. Nobody edits a version
+reads the commit messages, picks the next version, tags, cuts a GitHub release
+with the notes, and publishes both packages to npm. Nobody edits a version
 number by hand.
+
+**The changelog is the [Releases page](https://github.com/OpenTranscription/skills/releases),
+not a file in the repo.** A committed `CHANGELOG.md` would only restate what the
+tag and the release already say, and it costs a `chore(release)` commit on `main`
+every time.
 
 Which means the commit message _is_ the release decision:
 
