@@ -3,12 +3,13 @@ import { parseArgs } from 'node:util';
 
 import { jobs, models } from '../commands/catalog.js';
 import { login } from '../commands/login.js';
+import { logout } from '../commands/logout.js';
 import { switchOrg, whoami } from '../commands/session.js';
 import { show } from '../commands/show.js';
 import { transcribe } from '../commands/transcribe.js';
-import { logout } from '../commands/logout.js';
 import { MissingCredentialError } from '../credentials.js';
 import { DeviceFlowError } from '../deviceFlow.js';
+import { cliVersion } from '../version.js';
 
 const HELP = `ot — transcribe audio from your terminal
 
@@ -64,7 +65,7 @@ const main = async (argv: string[]): Promise<number> => {
   }
 
   if (values.version) {
-    console.log('0.1.0');
+    console.log(cliVersion());
     return 0;
   }
 
