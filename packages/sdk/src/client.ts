@@ -30,6 +30,8 @@ export type OpenTranscriptionOptions = {
   baseUrl?: string;
   /** Injectable for tests and for runtimes with a non-global fetch. */
   fetch?: typeof fetch;
+  /** Injectable so backoff is testable without real waiting. */
+  sleep?: (ms: number) => Promise<void>;
 };
 
 export type TranscribeInput = {
@@ -109,44 +111,83 @@ const contentTypeFor = (fileName: string): string => {
   return MIME_BY_EXTENSION[ext] ?? 'application/octet-stream';
 };
 
+const byteLength = (file: Uint8Array | Blob): number =>
+  'byteLength' in file ? file.byteLength : file.size;
+
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** How many times a 429 is waited out before the caller hears about it. */
+const RATE_LIMIT_RETRIES = 4;
+
+/**
+ * `Retry-After` is seconds; `X-RateLimit-Reset` is an epoch second. Fall back to
+ * the poll interval when neither is usable rather than hammering immediately.
+ */
+const retryAfterMs = (response: Response): number => {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000;
+
+  const reset = Number(response.headers.get('x-ratelimit-reset'));
+  if (Number.isFinite(reset) && reset > 0) {
+    const delta = reset * 1000 - Date.now();
+    if (delta > 0) return Math.min(delta, 60_000);
+  }
+
+  return DEFAULT_POLL_INTERVAL_MS;
+};
 
 export class OpenTranscription {
   readonly #apiKey: string;
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
+  readonly #sleep: (ms: number) => Promise<void>;
 
   constructor(options: OpenTranscriptionOptions) {
     this.#apiKey = options.apiKey;
     this.#baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
     this.#fetch = options.fetch ?? globalThis.fetch;
+    this.#sleep = options.sleep ?? sleep;
   }
 
+  /**
+   * One authenticated request, with backoff on 429.
+   *
+   * A single `transcribe` can trip the free tier's 10/minute on its own —
+   * upload, create, then a poll every couple of seconds — so surfacing a rate
+   * limit to the caller would be blaming them for this client's pacing. The
+   * server says when to come back; we wait that long, a bounded number of times,
+   * and only give up if it keeps saying no.
+   */
   async #api<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await this.#fetch(`${this.#baseUrl}${path}`, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${this.#apiKey}`,
-        'content-type': 'application/json',
-        ...init?.headers,
-      },
-    });
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await this.#fetch(`${this.#baseUrl}${path}`, {
+        ...init,
+        headers: {
+          authorization: `Bearer ${this.#apiKey}`,
+          'content-type': 'application/json',
+          ...init?.headers,
+        },
+      });
 
-    const body = (await response.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
 
-    if (!response.ok) {
+      if (response.ok) return body as T;
+
+      if (response.status === 429 && attempt < RATE_LIMIT_RETRIES) {
+        await this.#sleep(retryAfterMs(response));
+        continue;
+      }
+
       throw new ApiError(
         typeof body.error === 'string' ? body.error : response.statusText,
         response.status,
         typeof body.code === 'string' ? body.code : undefined
       );
     }
-
-    return body as T;
   }
 
   /** Upload the audio and open a transcription job for it. */
@@ -156,9 +197,13 @@ export class OpenTranscription {
       file_path: string;
     }>('/api/v1/uploads', {
       method: 'POST',
+      // Field names are the API's, not ours: file_size and mime_type are both
+      // required, and the route answers a bare "Validation error" when either is
+      // missing or misspelled — so this is pinned by a test.
       body: JSON.stringify({
         file_name: input.fileName,
-        content_type: contentTypeFor(input.fileName),
+        file_size: byteLength(input.file),
+        mime_type: contentTypeFor(input.fileName),
       }),
     });
 

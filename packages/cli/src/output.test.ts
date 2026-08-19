@@ -16,17 +16,17 @@ describe('buildSections', () => {
    * reading it. It has to be DETERMINISTIC — no model call — or the CLI becomes
    * slow, non-reproducible, and billable twice for one transcription.
    */
-  it('starts a new section when the speaker changes', () => {
+  it('starts a new section when the speaker changes after a real turn', () => {
     const sections = buildSections([
-      seg(0, 4, 'Welcome to the show.', 'A'),
-      seg(4, 8, 'Glad to be here.', 'B'),
-      seg(8, 12, 'Let us start with the budget.', 'A'),
+      seg(0, 40, 'Welcome to the show.', 'A'),
+      seg(40, 80, 'Glad to be here.', 'B'),
+      seg(80, 120, 'Let us start with the budget.', 'A'),
     ]);
 
     expect(sections).toEqual([
       { start: 0, label: 'Welcome to the show.' },
-      { start: 4, label: 'Glad to be here.' },
-      { start: 8, label: 'Let us start with the budget.' },
+      { start: 40, label: 'Glad to be here.' },
+      { start: 80, label: 'Let us start with the budget.' },
     ]);
   });
 
@@ -41,6 +41,34 @@ describe('buildSections', () => {
       { start: 0, label: 'First topic.' },
       { start: 40, label: 'A new topic entirely.' },
     ]);
+  });
+
+  /**
+   * Found by running this against a real 6-minute recording: rapid back-and-forth
+   * dialogue produced a section every two seconds, with labels like "Where?" and
+   * "To—". A section index that dense is a second transcript, not a way to
+   * navigate one, so sections have a minimum length.
+   */
+  it('does not start a section for every turn of a rapid exchange', () => {
+    const rapid = [
+      seg(0, 2, 'I am sorry.', 'A'),
+      seg(2, 4, 'Just email it.', 'B'),
+      seg(4, 6, 'Where?', 'A'),
+      seg(6, 8, 'With his mom.', 'B'),
+      seg(8, 10, 'No, with his mom.', 'A'),
+    ];
+
+    expect(buildSections(rapid)).toHaveLength(1);
+  });
+
+  it('starts a new section once enough time has passed', () => {
+    const sections = buildSections([
+      seg(0, 4, 'Opening.', 'A'),
+      seg(4, 8, 'Reply.', 'B'),
+      seg(40, 44, 'A genuinely later topic.', 'A'),
+    ]);
+
+    expect(sections.map((s) => s.start)).toEqual([0, 40]);
   });
 
   it('labels a section with its first sentence, not its whole text', () => {
