@@ -16,22 +16,62 @@ type Io = {
   configDir?: string;
   log?: (line: string) => void;
   client?: Pick<OpenTranscription, 'listModels' | 'listJobs'>;
+  /** Injected so the credential path itself can be exercised in tests. */
+  fetch?: typeof fetch;
 };
 
-const clientFor = async (options: Io) => {
+const build = (apiKey: string, options: Io) =>
+  new OpenTranscription({
+    apiKey,
+    baseUrl: apiBaseUrl(),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
+  });
+
+/**
+ * A client for the PUBLIC catalogue. `/v1/models` is an exempt route, so
+ * requiring a login to read it would add friction the API does not impose — and
+ * would block the case that matters most: an agent checking what is available
+ * before anyone has signed in. A stored key is used when there is one, since it
+ * costs nothing and keeps the request attributable.
+ */
+const catalogClient = async (options: Io) => {
+  if (options.client) return options.client;
+
+  const store = await loadCredentials(options.configDir ?? defaultConfigDir());
+  try {
+    return build(
+      resolveCredential(store, { orgId: options.orgId }).apiKey,
+      options
+    );
+  } catch {
+    return build('', options);
+  }
+};
+
+/** A client for routes that genuinely need a key; throws when there is none. */
+const authedClient = async (options: Io) => {
   if (options.client) return options.client;
 
   const store = await loadCredentials(options.configDir ?? defaultConfigDir());
   const credential = resolveCredential(store, { orgId: options.orgId });
 
-  return new OpenTranscription({
-    apiKey: credential.apiKey,
-    baseUrl: apiBaseUrl(),
-  });
+  return build(credential.apiKey, options);
 };
 
-const perMinute = (costPerSecond: number | undefined): string =>
-  costPerSecond === undefined ? '—' : `$${(costPerSecond * 60).toFixed(4)}/min`;
+const perMinute = (model: CatalogModel): string => {
+  const perSecond = model.pricing?.cost_per_second;
+  return perSecond === undefined
+    ? '—'
+    : `${(perSecond * 60).toFixed(2)} cr/min`;
+};
+
+/** Measured on the golden set. Absent for models that have not been swept. */
+const accuracy = (model: CatalogModel): string => {
+  const wer = model.performance?.avg_wer;
+  return wer === null || wer === undefined
+    ? ''
+    : `  ${(100 - wer * 100).toFixed(1)}% acc`;
+};
 
 /**
  * `ot models` — what the agent is allowed to pass to `--model`.
@@ -43,14 +83,16 @@ export const models = async (
   options: Io & { language?: string | undefined } = {}
 ): Promise<number> => {
   const log = options.log ?? ((line: string) => console.log(line));
-  const client = await clientFor(options);
+  const client = await catalogClient(options);
 
   let catalog: CatalogModel[] = await client.listModels();
 
   if (options.language) {
     const wanted = options.language.toLowerCase();
     catalog = catalog.filter((model) =>
-      (model.languages ?? []).some((code) => code.toLowerCase() === wanted)
+      (model.capabilities?.supported_languages ?? []).some(
+        (code) => code.toLowerCase() === wanted
+      )
     );
   }
 
@@ -68,9 +110,9 @@ export const models = async (
   log('');
 
   for (const model of catalog) {
-    const name = model.display_name ?? model.id;
+    const name = model.display_name ?? model.name ?? model.id;
     log(
-      `${model.id.padEnd(38)} ${perMinute(model.cost_per_second).padStart(12)}  ${name}`
+      `${model.id.padEnd(34)} ${perMinute(model).padStart(13)}${accuracy(model).padEnd(14)}  ${name}`
     );
   }
 
@@ -82,7 +124,7 @@ export const jobs = async (
   options: Io & { limit?: number } = {}
 ): Promise<number> => {
   const log = options.log ?? ((line: string) => console.log(line));
-  const client = await clientFor(options);
+  const client = await authedClient(options);
 
   const recent: Job[] = await client.listJobs(options.limit ?? 10);
 

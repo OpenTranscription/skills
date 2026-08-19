@@ -40,13 +40,13 @@ const client = (fetchImpl: typeof fetch) =>
 describe('transcribe', () => {
   it('runs the three-step upload in order', async () => {
     const { fetch, calls } = stubFetch({
-      '/v1/uploads': () =>
+      '/api/v1/uploads': () =>
         json({
           upload_url: 'https://storage.test/put/abc',
           file_path: 'org/abc.mp3',
         }),
       'storage.test': () => new Response(null, { status: 200 }),
-      '/v1/transcriptions': () => json({ id: 'job-1', status: 'queued' }),
+      '/api/v1/transcriptions': () => json({ id: 'job-1', status: 'queued' }),
     });
 
     const job = await client(fetch).transcribe({
@@ -55,22 +55,22 @@ describe('transcribe', () => {
     });
 
     expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
-      '/v1/uploads',
+      '/api/v1/uploads',
       '/put/abc',
-      '/v1/transcriptions',
+      '/api/v1/transcriptions',
     ]);
     expect(job.id).toBe('job-1');
   });
 
   it('sends the file_path the API handed back, not a path it invented', async () => {
     const { fetch, calls } = stubFetch({
-      '/v1/uploads': () =>
+      '/api/v1/uploads': () =>
         json({
           upload_url: 'https://storage.test/put/abc',
           file_path: 'org-9/xyz.mp3',
         }),
       'storage.test': () => new Response(null, { status: 200 }),
-      '/v1/transcriptions': () => json({ id: 'job-1', status: 'queued' }),
+      '/api/v1/transcriptions': () => json({ id: 'job-1', status: 'queued' }),
     });
 
     await client(fetch).transcribe({
@@ -91,13 +91,13 @@ describe('transcribe', () => {
    */
   it('never sends the API key to the storage host', async () => {
     const { fetch, calls } = stubFetch({
-      '/v1/uploads': () =>
+      '/api/v1/uploads': () =>
         json({
           upload_url: 'https://storage.test/put/abc',
           file_path: 'p.mp3',
         }),
       'storage.test': () => new Response(null, { status: 200 }),
-      '/v1/transcriptions': () => json({ id: 'j', status: 'queued' }),
+      '/api/v1/transcriptions': () => json({ id: 'j', status: 'queued' }),
     });
 
     await client(fetch).transcribe({
@@ -117,7 +117,7 @@ describe('transcribe', () => {
 
   it('surfaces the API error rather than a generic failure', async () => {
     const { fetch } = stubFetch({
-      '/v1/uploads': () =>
+      '/api/v1/uploads': () =>
         json(
           { error: 'Free minutes exhausted.', code: 'FREE_MINUTES_EXHAUSTED' },
           402
@@ -134,7 +134,7 @@ describe('waitForJob', () => {
   it('polls until the job reaches a terminal status', async () => {
     let n = 0;
     const { fetch, calls } = stubFetch({
-      '/v1/transcriptions/job-1': () => {
+      '/api/v1/transcriptions/job-1': () => {
         n += 1;
         return json({
           id: 'job-1',
@@ -156,7 +156,7 @@ describe('waitForJob', () => {
    */
   it('rejects a failed job with its machine-readable code', async () => {
     const { fetch } = stubFetch({
-      '/v1/transcriptions/job-1': () =>
+      '/api/v1/transcriptions/job-1': () =>
         json({
           id: 'job-1',
           status: 'failed',
@@ -176,7 +176,7 @@ describe('waitForJob', () => {
   it('stops when the caller aborts', async () => {
     const controller = new AbortController();
     const { fetch } = stubFetch({
-      '/v1/transcriptions/job-1': () => {
+      '/api/v1/transcriptions/job-1': () => {
         controller.abort();
         return json({ id: 'job-1', status: 'processing' });
       },

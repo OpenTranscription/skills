@@ -29,8 +29,8 @@ const harness = (tokenResponses: Array<() => Response>) => {
 
   const fetchImpl = (async (input: RequestInfo | URL) => {
     const url = input.toString();
-    if (url.endsWith('/v1/device/code')) return json(CODE_RESPONSE);
-    if (url.endsWith('/v1/device/token')) return tokenResponses[n++]!();
+    if (url.endsWith('/api/v1/device/code')) return json(CODE_RESPONSE);
+    if (url.endsWith('/api/v1/device/token')) return tokenResponses[n++]!();
     throw new Error(`unstubbed ${url}`);
   }) as unknown as typeof fetch;
 

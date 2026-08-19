@@ -6,7 +6,9 @@
  * and the polling loop.
  */
 
-const DEFAULT_BASE_URL = 'https://api.opentranscription.io';
+// The API is served from the apex, not an `api.` subdomain — this is the
+// `servers` entry in the published OpenAPI document.
+const DEFAULT_BASE_URL = 'https://opentranscription.io';
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 
 /** Statuses the API will never move away from. */
@@ -47,12 +49,23 @@ export type Job = {
   [key: string]: unknown;
 };
 
+/** One entry of `GET /api/v1/models`, as the API actually shapes it. */
 export type CatalogModel = {
   id: string;
+  name?: string;
   display_name?: string;
-  provider?: string;
-  cost_per_second?: number;
-  languages?: string[];
+  description?: string;
+  mode?: string;
+  is_active?: boolean;
+  provider?: { id: string; name: string };
+  pricing?: { cost_per_second: number; currency: string };
+  performance?: { avg_wer?: number | null; avg_speed_factor?: number | null };
+  capabilities?: {
+    supported_languages?: string[];
+    supported_formats?: string[];
+    features?: string[];
+    max_file_size?: number | null;
+  };
   [key: string]: unknown;
 };
 
@@ -141,7 +154,7 @@ export class OpenTranscription {
     const { upload_url, file_path } = await this.#api<{
       upload_url: string;
       file_path: string;
-    }>('/v1/uploads', {
+    }>('/api/v1/uploads', {
       method: 'POST',
       body: JSON.stringify({
         file_name: input.fileName,
@@ -165,7 +178,7 @@ export class OpenTranscription {
 
     // `file_path` comes back from the API and is passed through untouched. It is
     // the server's name for the object, not something a client may construct.
-    return this.#api<Job>('/v1/transcriptions', {
+    return this.#api<Job>('/api/v1/transcriptions', {
       method: 'POST',
       body: JSON.stringify({
         file_path,
@@ -178,22 +191,29 @@ export class OpenTranscription {
     });
   }
 
-  /** The public model catalogue: ids, pricing, languages, measured accuracy. */
+  /**
+   * The public model catalogue: ids, pricing, languages, measured accuracy.
+   *
+   * The payload is `{ data: { models, filters, stats } }` — the models are one
+   * level deeper than the other list routes put theirs.
+   */
   async listModels(): Promise<CatalogModel[]> {
-    const body = await this.#api<{ data?: CatalogModel[] }>('/v1/models');
-    return body.data ?? [];
+    const body = await this.#api<{ data?: { models?: CatalogModel[] } }>(
+      '/api/v1/models'
+    );
+    return body.data?.models ?? [];
   }
 
   /** Recent jobs, newest first. */
   async listJobs(limit = 10): Promise<Job[]> {
     const body = await this.#api<{ data?: Job[] }>(
-      `/v1/transcriptions?limit=${encodeURIComponent(String(limit))}`
+      `/api/v1/transcriptions?limit=${encodeURIComponent(String(limit))}`
     );
     return body.data ?? [];
   }
 
   async getJob(id: string): Promise<Job> {
-    return this.#api<Job>(`/v1/transcriptions/${encodeURIComponent(id)}`);
+    return this.#api<Job>(`/api/v1/transcriptions/${encodeURIComponent(id)}`);
   }
 
   /** Poll until the job finishes. Throws `JobFailedError` if it failed. */
