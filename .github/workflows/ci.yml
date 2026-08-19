@@ -1,40 +1,107 @@
 name: CI
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
-  pull_request:
   # Daily, because the API can change without anything in this repo changing.
   schedule:
     - cron: '0 6 * * *'
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-      - run: npm run lint
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-  # The SDK's types are generated from the PUBLISHED spec, so the API can change
-  # under this package without anyone touching it. Regenerating on a schedule and
-  # failing on a diff is what turns that from a silent break into a red build.
-  spec-drift:
+jobs:
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run typegen
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  commitlint:
+    name: Commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # The husky hook only covers commits made locally. A commit written in the
+      # GitHub UI, or one made with --no-verify, reaches main unchecked — and a
+      # malformed type does not error, it silently cuts no release at all.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint commit messages
+        run: >-
+          npx commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
+  spec-drift:
+    name: Spec drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # The SDK's types are generated from the PUBLISHED spec, so the API can change
+    # under this package without anyone touching it. Regenerating on a schedule and
+    # failing on a diff is what turns that from a silent break into a red build.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate types from the live spec
+        run: npm run typegen
+
       - name: Fail if the committed types no longer match the live spec
         run: |
           if ! git diff --quiet -- packages/sdk/src/generated; then

@@ -1,7 +1,7 @@
 import {
-  OpenTranscription,
   type CatalogModel,
   type Job,
+  OpenTranscription,
 } from '@opentranscription/sdk';
 
 import {

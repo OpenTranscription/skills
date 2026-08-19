@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  MissingCredentialError,
   loadCredentials,
+  MissingCredentialError,
   resolveCredential,
   saveCredential,
 } from './credentials.js';

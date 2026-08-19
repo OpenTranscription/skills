@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { saveCredential } from '../credentials.js';
-
 import { parseTimecode, show } from './show.js';
 
 let dir: string;

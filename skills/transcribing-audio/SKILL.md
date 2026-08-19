@@ -43,13 +43,13 @@ ot transcribe path/to/audio.mp3
 
 Useful flags:
 
-| Flag | When |
-| --- | --- |
-| `--diarize` | more than one speaker, or the user asks who said what |
-| `--model auto/best` | accuracy matters more than cost |
-| `--model auto/cheapest` | long file, rough transcript is fine |
-| `--language es` | you know the language; skips detection |
-| `--out <dir>` | write artifacts somewhere other than beside the audio |
+| Flag                    | When                                                  |
+| ----------------------- | ----------------------------------------------------- |
+| `--diarize`             | more than one speaker, or the user asks who said what |
+| `--model auto/best`     | accuracy matters more than cost                       |
+| `--model auto/cheapest` | long file, rough transcript is fine                   |
+| `--language es`         | you know the language; skips detection                |
+| `--out <dir>`           | write artifacts somewhere other than beside the audio |
 
 Run `ot models` to see what is available with prices and measured accuracy.
 
