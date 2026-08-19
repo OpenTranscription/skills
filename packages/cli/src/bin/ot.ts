@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { jobs, models } from '../commands/catalog.js';
 import { login } from '../commands/login.js';
 import { switchOrg, whoami } from '../commands/session.js';
+import { show } from '../commands/show.js';
 import { transcribe } from '../commands/transcribe.js';
 import { logout } from '../commands/logout.js';
 import { MissingCredentialError } from '../credentials.js';
@@ -19,6 +20,8 @@ Usage
 
   ot models [--language es]    list models with prices
   ot jobs [--limit 10]         recent transcriptions
+  ot show <job-id>             print a transcript
+    --from 1:30 --to 4:00      only part of it
 
   ot transcribe <file>         transcribe audio; writes artifacts next to it
     --model <id>               e.g. auto/best, auto/cheapest, openai/whisper-large-v3
@@ -39,6 +42,8 @@ const options = {
   diarize: { type: 'boolean' },
   all: { type: 'boolean' },
   limit: { type: 'string' },
+  from: { type: 'string' },
+  to: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -90,6 +95,19 @@ const main = async (argv: string[]): Promise<number> => {
         orgId: values.org as string | undefined,
         ...(values.limit === undefined ? {} : { limit: Number(values.limit) }),
       });
+
+    case 'show': {
+      if (!target) {
+        console.error('Usage: ot show <job-id> [--from 1:30] [--to 4:00]');
+        return 2;
+      }
+      return show({
+        jobId: target,
+        from: values.from as string | undefined,
+        to: values.to as string | undefined,
+        orgId: values.org as string | undefined,
+      });
+    }
 
     case 'transcribe': {
       if (!target) {
