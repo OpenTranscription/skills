@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
-import { importX } from 'eslint-plugin-import-x';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -22,10 +22,22 @@ const eslintConfig = defineConfig([
 
   // 1. Import sorting, unused vars, and type imports.
   //
-  // Mirrors the product repo so a change moving between the two does not churn
-  // import order on arrival.
+  // Sorting is `simple-import-sort` rather than the product repo's
+  // `eslint-plugin-import-x`, and that is deliberate. import-x depends on
+  // `unrs-resolver`, whose per-platform native bindings reach an optional
+  // wasm32-wasi package that declares `@emnapi/core` and `@emnapi/runtime` as
+  // PEERS. Installing on Windows prunes that branch, so npm never writes those
+  // peers into package-lock.json — and `npm ci` on Linux then refuses the lock
+  // as out of sync. Regenerating the lock does not fix it, and neither do
+  // npm's --os/--cpu overrides; the entries are simply never resolved.
+  // `eslint-plugin-import` is not an option either: its peer range stops at
+  // ESLint 9. simple-import-sort has ZERO dependencies, so the whole class is
+  // gone. The product repo does not hit this because bun resolves differently.
+  //
+  // The groups below reproduce the previous layout exactly — builtins, then
+  // external, then relative — so no import block had to be rewritten.
   {
-    plugins: { 'import-x': importX },
+    plugins: { 'simple-import-sort': simpleImportSort },
     rules: {
       // `_`-prefixed names are an intentional discard (rest destructuring).
       '@typescript-eslint/no-unused-vars': [
@@ -36,23 +48,19 @@ const eslintConfig = defineConfig([
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
-      'sort-imports': [
-        'error',
-        { ignoreCase: true, ignoreDeclarationSort: true },
-      ],
-      'import-x/order': [
+      'simple-import-sort/imports': [
         'error',
         {
           groups: [
-            'builtin',
-            'external',
-            'internal',
-            ['parent', 'sibling', 'index'],
+            ['^\\u0000'], // side effects
+            ['^node:'],
+            ['^@?\\w'], // external packages
+            ['^'], // anything else absolute
+            ['^\\.'], // relative
           ],
-          'newlines-between': 'always',
-          alphabetize: { order: 'asc', caseInsensitive: true },
         },
       ],
+      'simple-import-sort/exports': 'error',
       'func-style': ['error', 'declaration', { allowArrowFunctions: true }],
       'prefer-arrow-callback': ['error', { allowNamedFunctions: true }],
       'arrow-body-style': ['error', 'as-needed'],

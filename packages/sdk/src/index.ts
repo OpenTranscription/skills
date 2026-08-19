@@ -1,9 +1,9 @@
 export {
   ApiError,
-  JobFailedError,
-  OpenTranscription,
   type CatalogModel,
   type Job,
+  JobFailedError,
+  OpenTranscription,
   type OpenTranscriptionOptions,
   type TranscribeInput,
   type WaitOptions,
