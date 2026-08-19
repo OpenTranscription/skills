@@ -63,7 +63,7 @@ export const runDeviceFlow = async (
   input: DeviceFlowInput,
   deps: DeviceFlowDeps
 ): Promise<DeviceCredential> => {
-  const codeResponse = await deps.fetch(`${input.baseUrl}/v1/device/code`, {
+  const codeResponse = await deps.fetch(`${input.baseUrl}/api/v1/device/code`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -106,7 +106,7 @@ export const runDeviceFlow = async (
     // including one the user approves instantly.
     if (poll > 0) await deps.sleep(intervalSeconds * 1000);
 
-    const response = await deps.fetch(`${input.baseUrl}/v1/device/token`, {
+    const response = await deps.fetch(`${input.baseUrl}/api/v1/device/token`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
