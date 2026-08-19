@@ -1,0 +1,27 @@
+{
+  "name": "@opentranscription/workspace",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --build --pretty",
+    "typegen": "node scripts/generate-types.mjs",
+    "lint": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "openapi-typescript": "^7.4.4",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

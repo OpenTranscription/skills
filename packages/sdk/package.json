@@ -1,0 +1,29 @@
+{
+  "name": "@opentranscription/sdk",
+  "version": "0.1.0",
+  "description": "Typed client for the OpenTranscription API — upload, transcribe, poll, and read results.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenTranscription/skills.git",
+    "directory": "packages/sdk"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}
