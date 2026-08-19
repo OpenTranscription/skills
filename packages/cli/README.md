@@ -8,7 +8,7 @@ ot login
 ot transcribe meeting.mp3
 ```
 
-Requires Node 20 or newer.
+Requires Node 22 or newer.
 
 ## Why a CLI
 

@@ -7,7 +7,7 @@ file, transcribe it against any model in the catalogue, and wait for the result.
 npm install @opentranscription/sdk
 ```
 
-Requires Node 20 or newer. The types are generated from the published OpenAPI
+Requires Node 22 or newer. The types are generated from the published OpenAPI
 spec, so they track the live API rather than a hand-written guess.
 
 ## Usage

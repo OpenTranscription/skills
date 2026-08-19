@@ -21,7 +21,7 @@
     "url": "https://github.com/OpenTranscription/skills/issues"
   },
   "bin": {
-    "ot": "./dist/bin/ot.js"
+    "ot": "dist/bin/ot.js"
   },
   "files": [
     "dist",
