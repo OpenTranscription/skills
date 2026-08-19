@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "declaration": false,
+    "declarationMap": false,
     "sourceMap": false,
     "types": ["node", "vitest/globals"]
   },
