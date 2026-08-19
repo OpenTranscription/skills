@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Daily, because the API can change without anything in this repo changing.
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run lint
+
+  # The SDK's types are generated from the PUBLISHED spec, so the API can change
+  # under this package without anyone touching it. Regenerating on a schedule and
+  # failing on a diff is what turns that from a silent break into a red build.
+  spec-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typegen
+      - name: Fail if the committed types no longer match the live spec
+        run: |
+          if ! git diff --quiet -- packages/sdk/src/generated; then
+            echo "::error::The published OpenAPI spec has changed. Run 'npm run typegen' and commit the result."
+            git diff --stat -- packages/sdk/src/generated
+            exit 1
+          fi
