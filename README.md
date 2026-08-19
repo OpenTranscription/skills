@@ -95,6 +95,23 @@ Husky runs the same gate the product repo does: `lint-staged` on commit (eslint
 typecheck plus lint plus the full suite on push. CI runs the identical steps, so
 a green pre-push means a green build.
 
+### The TypeScript version is pinned by two ceilings
+
+`typescript-eslint` accepts `>=4.8.4 <6.1.0` and throws outright on TS 7, so 6.0.3
+is as far as the compiler goes. `openapi-typescript` caps its peer at `^5.x`, which
+`package.json` overrides to the root TypeScript.
+
+That override is not a guess. `npm run typegen` under TS 6 regenerates
+`packages/sdk/src/generated/api.ts` byte-identically, which the `spec-drift` CI job
+checks on every run and nightly — so a real incompatibility fails a build rather
+than going unnoticed. The peer cap is the author being conservative about a major
+they have not tested, not a break.
+
+One npm quirk to know: after changing the override, `npm install` had to run twice
+before it wrote a lockfile `npm ci` would accept (the first pass dropped
+`conventional-commits-filter`). If CI fails on a missing package that is plainly
+present, run `npm install` again and commit the lockfile.
+
 ## Releasing
 
 Merging to `main` releases. [semantic-release](https://semantic-release.gitbook.io)
