@@ -72,17 +72,10 @@ export const loadCredentials = async (
   }
 };
 
-export const saveCredential = async (
+const writeStore = async (
   dir: string,
-  orgId: string,
-  credential: StoredCredential
-): Promise<CredentialStore> => {
-  const store = await loadCredentials(dir);
-
-  store.orgs[orgId] = credential;
-  // First login wins the default; `ot switch` is what changes it afterwards.
-  store.defaultOrgId ??= orgId;
-
+  store: CredentialStore
+): Promise<void> => {
   await mkdir(dir, { recursive: true });
   const path = join(dir, FILE_NAME);
   await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, {
@@ -94,6 +87,45 @@ export const saveCredential = async (
   await chmod(path, 0o600).catch(() => {
     /* Windows has no POSIX bits; nothing to enforce there. */
   });
+};
+
+export const saveCredential = async (
+  dir: string,
+  orgId: string,
+  credential: StoredCredential
+): Promise<CredentialStore> => {
+  const store = await loadCredentials(dir);
+
+  store.orgs[orgId] = credential;
+  // First login wins the default; `ot switch` is what changes it afterwards.
+  store.defaultOrgId ??= orgId;
+
+  await writeStore(dir, store);
+
+  return store;
+};
+
+/**
+ * Point the default at an org that already has a key.
+ *
+ * Separate from `saveCredential`, which guards the default with `??=` so a
+ * second login cannot silently steal it — and therefore can never CHANGE it.
+ * Switching has to say so explicitly, or it reports success and writes nothing.
+ */
+export const setDefaultOrg = async (
+  dir: string,
+  orgId: string
+): Promise<CredentialStore> => {
+  const store = await loadCredentials(dir);
+
+  if (!store.orgs[orgId]) {
+    throw new MissingCredentialError(
+      `No credential stored for organization ${orgId}. Run \`ot login --org ${orgId}\`.`
+    );
+  }
+
+  store.defaultOrgId = orgId;
+  await writeStore(dir, store);
 
   return store;
 };
