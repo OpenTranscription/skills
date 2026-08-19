@@ -13,10 +13,12 @@ ot login
 ot transcribe meeting.mp3
 ```
 
-A 91-minute recording comes back like this:
+An hour-long meeting comes back like this:
 
 ```
-✓ transcribed  (4,200 words · 1h31m · auto/best)
+$ ot transcribe meeting.mp3
+
+✓ transcribed  (8,000 words · 59m · auto/best)
 
 3 speakers
 
@@ -28,12 +30,12 @@ Sections:
   00:00:00  So the migration is the thing I keep coming back to.
   00:01:01  Let me pull the numbers before we decide anything.
   00:15:40  I can have the dashboard ready by Thursday.
-  00:40:50  Then we ship the migration behind a flag first.
 ```
 
-Everything is on disk. The agent spent a filename, not 40,000 tokens, and it
-knows where to look. Short recordings print inline instead, because a receipt
-for eight seconds of audio is worse than the audio.
+Everything is on disk. The agent spent a filename, not the ~10,400 tokens that
+transcript would have cost it, and it knows where to look. Short recordings
+print inline instead, because a receipt for eight seconds of audio is worse
+than the audio.
 
 ## Commands
 

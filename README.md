@@ -18,10 +18,12 @@ ot login
 ot transcribe interview.mp3
 ```
 
-A 91-minute recording comes back like this:
+An hour-long meeting comes back like this:
 
 ```
-✓ transcribed  (4,200 words · 1h31m · auto/best)
+$ ot transcribe meeting.mp3
+
+✓ transcribed  (8,000 words · 59m · auto/best)
 
 3 speakers
 
@@ -33,11 +35,11 @@ Sections:
   00:00:00  So the migration is the thing I keep coming back to.
   00:01:01  Let me pull the numbers before we decide anything.
   00:15:40  I can have the dashboard ready by Thursday.
-  00:40:50  Then we ship the migration behind a flag first.
 ```
 
 The transcript, subtitles, and section index are on disk. The agent spent a
-filename instead of 40,000 tokens, and it knows where to look next.
+filename instead of the ~10,400 tokens that transcript would have cost it, and
+it knows where to look next.
 
 ## Why a CLI and not an API call
 
