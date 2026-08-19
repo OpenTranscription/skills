@@ -1,0 +1,7 @@
+# Normalise to LF in the repository. The husky hooks are shell scripts: a CRLF
+# `.husky/pre-commit` checked out on a POSIX box fails on the carriage return,
+# and the failure is a confusing one because the script LOOKS correct.
+* text=auto eol=lf
+
+# Generated, and large. Keep it out of diffs and language stats.
+packages/sdk/src/generated/** linguist-generated=true
