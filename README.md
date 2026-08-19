@@ -1,7 +1,12 @@
 # OpenTranscription skills
 
-Transcribe audio from your coding agent — the Agent Skill, CLI, and SDK for
-[OpenTranscription](https://opentranscription.io).
+[![cli](https://img.shields.io/npm/v/@opentranscription/cli?label=cli)](https://www.npmjs.com/package/@opentranscription/cli)
+[![sdk](https://img.shields.io/npm/v/@opentranscription/sdk?label=sdk)](https://www.npmjs.com/package/@opentranscription/sdk)
+[![node](https://img.shields.io/node/v/@opentranscription/cli)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/@opentranscription/cli)](./LICENSE)
+
+Give your coding agent the ability to transcribe audio. Agent Skill, CLI, and
+typed SDK for [OpenTranscription](https://opentranscription.io).
 
 ```
 npx skills add opentranscription/skills
@@ -9,6 +14,27 @@ npm install -g @opentranscription/cli
 ot login
 ot transcribe interview.mp3
 ```
+
+A 91-minute recording comes back like this:
+
+```
+✓ transcribed  (4,200 words · 1h31m · auto/best)
+
+3 speakers
+
+transcript meeting.txt
+srt        meeting.srt
+vtt        meeting.vtt
+
+Sections:
+  00:00:00  So the migration is the thing I keep coming back to.
+  00:01:01  Let me pull the numbers before we decide anything.
+  00:15:40  I can have the dashboard ready by Thursday.
+  00:40:50  Then we ship the migration behind a flag first.
+```
+
+The transcript, subtitles, and section index are on disk. The agent spent a
+filename instead of 40,000 tokens, and it knows where to look next.
 
 ## What this is
 

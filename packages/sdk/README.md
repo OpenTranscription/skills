@@ -1,5 +1,9 @@
 # @opentranscription/sdk
 
+[![npm](https://img.shields.io/npm/v/@opentranscription/sdk)](https://www.npmjs.com/package/@opentranscription/sdk)
+[![node](https://img.shields.io/node/v/@opentranscription/sdk)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/@opentranscription/sdk)](../../LICENSE)
+
 Typed client for the [OpenTranscription](https://opentranscription.io) API. Upload a
 file, transcribe it against any model in the catalogue, and wait for the result.
 
@@ -7,8 +11,9 @@ file, transcribe it against any model in the catalogue, and wait for the result.
 npm install @opentranscription/sdk
 ```
 
-Requires Node 22 or newer. The types are generated from the published OpenAPI
-spec, so they track the live API rather than a hand-written guess.
+The types are generated from the published OpenAPI spec, so they track the live
+API rather than a hand-written guess. A nightly job regenerates them and fails
+the build on any drift.
 
 ## Usage
 
@@ -58,6 +63,10 @@ Rate limits (429) are retried automatically, honouring `Retry-After` and then
 
 Create one in your [dashboard](https://opentranscription.io/settings/keys),
 or run `npx @opentranscription/cli login` to mint one through the browser.
+
+Requires Node 22 or newer. Published with
+[provenance](https://docs.npmjs.com/generating-provenance-statements), so every
+release links to the commit and workflow run that built it.
 
 ## License
 

@@ -1,6 +1,11 @@
 # @opentranscription/cli
 
-Transcribe audio from your terminal, or from a coding agent that has a shell.
+[![npm](https://img.shields.io/npm/v/@opentranscription/cli)](https://www.npmjs.com/package/@opentranscription/cli)
+[![node](https://img.shields.io/node/v/@opentranscription/cli)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/@opentranscription/cli)](../../LICENSE)
+
+Transcribe audio from your terminal. Built for coding agents that have a shell,
+and perfectly usable by hand.
 
 ```bash
 npm install -g @opentranscription/cli
@@ -8,15 +13,27 @@ ot login
 ot transcribe meeting.mp3
 ```
 
-Requires Node 22 or newer.
+A 91-minute recording comes back like this:
 
-## Why a CLI
+```
+✓ transcribed  (4,200 words · 1h31m · auto/best)
 
-Agents run out of context long before they run out of audio. `ot transcribe`
-writes the transcript, the SRT, the VTT and a section index to disk and prints a
-short receipt, so a two-hour recording costs the agent a filename instead of
-40,000 tokens. Short recordings still print inline, because a receipt for eight
-seconds of audio is worse than the audio.
+3 speakers
+
+transcript meeting.txt
+srt        meeting.srt
+vtt        meeting.vtt
+
+Sections:
+  00:00:00  So the migration is the thing I keep coming back to.
+  00:01:01  Let me pull the numbers before we decide anything.
+  00:15:40  I can have the dashboard ready by Thursday.
+  00:40:50  Then we ship the migration behind a flag first.
+```
+
+Everything is on disk. The agent spent a filename, not 40,000 tokens, and it
+knows where to look. Short recordings print inline instead, because a receipt
+for eight seconds of audio is worse than the audio.
 
 ## Commands
 
@@ -31,12 +48,7 @@ ot show <job-id>             read a transcript, or part of one
 ot models                    the model catalogue
 ```
 
-`ot login` uses the OAuth device flow: it prints a code, opens your browser, and
-you approve the terminal from a page you are already signed in to. No key is
-pasted anywhere. Keys are stored per workspace in
-`~/.config/opentranscription/`, mode `0600`.
-
-## Reading long transcripts
+## Reading part of a transcript
 
 ```bash
 ot show <job-id> --from 12:30 --to 18:00
@@ -55,10 +67,21 @@ ot transcribe interview.wav --model auto/cheapest --diarize
 `auto/best` and `auto/cheapest` route for you. `ot models` lists everything else
 with per-minute pricing and measured accuracy.
 
+## Signing in
+
+`ot login` uses the OAuth device flow: it prints a code, opens your browser, and
+you approve the terminal from a page you are already signed in to. No key is
+pasted anywhere. Credentials are stored per workspace in
+`~/.config/opentranscription/`, mode `0600`.
+
 ## Environment
 
 - `OT_API_URL` — point at a different API host. Defaults to `https://opentranscription.io`.
 - `OT_CONFIG_DIR` — where credentials live. Defaults to `$XDG_CONFIG_HOME/opentranscription`, or `~/.config/opentranscription`.
+
+Requires Node 22 or newer. Published with
+[provenance](https://docs.npmjs.com/generating-provenance-statements), so every
+release links to the commit and workflow run that built it.
 
 ## License
 
