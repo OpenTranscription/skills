@@ -1,5 +1,6 @@
 {
   "name": "@opentranscription/workspace",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -17,6 +18,7 @@
     "typegen": "node scripts/generate-types.mjs",
     "lint": "eslint .",
     "prepare": "husky",
+    "release": "semantic-release",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
