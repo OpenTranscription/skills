@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-dark.png">
-  <img alt="OpenTranscription CLI — transcribe audio from your terminal" src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
+  <img alt="OpenTranscription. Every speech-to-text model worth using. One command." src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
 </picture>
 
 # @opentranscription/cli
@@ -23,11 +23,12 @@ An hour-long meeting comes back like this:
 ```
 $ ot transcribe meeting.mp3
 
-✓ transcribed  (8,000 words · 59m · auto/best)
+✓ transcribed  (8,000 words · 59m · deepgram/nova-3)
 
 3 speakers
 
-transcript meeting.txt
+transcript meeting.transcript.md
+json       meeting.json
 srt        meeting.srt
 vtt        meeting.vtt
 
@@ -46,13 +47,13 @@ than the audio.
 
 ```
 ot login [--org <id>]        sign in (opens your browser)
-ot logout [--org <id>]       forget one workspace, or all of them
+ot logout [--org <id>] [--all] forget one workspace, or all of them
 ot whoami                    show signed-in workspaces
 ot switch <org-id>           choose which workspace commands use
-ot transcribe <file>         transcribe audio or video
-ot jobs                      recent transcriptions
+ot transcribe <file>         transcribe an audio file
+ot jobs [--limit 10]         recent transcriptions
 ot show <job-id>             read a transcript, or part of one
-ot models                    the model catalogue
+ot models [--language es]    the model catalogue
 ```
 
 ## Reading part of a transcript
@@ -61,8 +62,9 @@ ot models                    the model catalogue
 ot show <job-id> --from 12:30 --to 18:00
 ```
 
-Slicing happens locally against the transcript the job already produced, so
-reading a section twice costs nothing.
+The slicing happens in the CLI: `ot show` fetches the job and prints only the
+range you asked for. The bytes land in this process instead of in your agent's
+context, and re-reading a section never re-transcribes anything.
 
 ## Choosing a model
 
@@ -71,20 +73,20 @@ ot models --language es
 ot transcribe interview.wav --model auto/cheapest --diarize
 ```
 
-`auto/best` and `auto/cheapest` route for you. `ot models` lists everything else
-with per-minute pricing and measured accuracy.
+`auto/best`, `auto/cheapest` and `auto/fastest` route for you. `ot models` lists
+everything else with per-minute pricing and measured accuracy.
 
 ## Signing in
 
 `ot login` uses the OAuth device flow: it prints a code, opens your browser, and
-you approve the terminal from a page you are already signed in to. No key is
-pasted anywhere. Credentials are stored per workspace in
-`~/.config/opentranscription/`, mode `0600`.
+you approve the terminal from a page you are already signed in to. The key goes
+straight to disk without passing through your clipboard. Credentials are stored
+per workspace in `~/.config/opentranscription/`, mode `0600`.
 
 ## Environment
 
-- `OT_API_URL` — point at a different API host. Defaults to `https://opentranscription.io`.
-- `OT_CONFIG_DIR` — where credentials live. Defaults to `$XDG_CONFIG_HOME/opentranscription`, or `~/.config/opentranscription`.
+- `OT_API_URL` points at a different API host. Defaults to `https://opentranscription.io`.
+- `OT_CONFIG_DIR` sets where credentials live. Defaults to `$XDG_CONFIG_HOME/opentranscription`, or `~/.config/opentranscription`.
 
 Requires Node 22 or newer. Published with
 [provenance](https://docs.npmjs.com/generating-provenance-statements), so every

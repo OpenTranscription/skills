@@ -20,15 +20,15 @@ a green pre-push means a green build.
 
 ### The TypeScript version is pinned by two ceilings
 
-`typescript-eslint` accepts `>=4.8.4 <6.1.0` and throws outright on TS 7, so 6.0.3
-is as far as the compiler goes. `openapi-typescript` caps its peer at `^5.x`, which
+`typescript-eslint` caps its TypeScript peer at `>=4.8.4 <6.1.0`, and TS 7 makes
+`eslint .` throw outright, so 6.0.3 is the newest compiler this repo can use. `openapi-typescript` caps its peer at `^5.x`, which
 `package.json` overrides to the root TypeScript.
 
 That override is not a guess. `npm run typegen` under TS 6 regenerates
 `packages/sdk/src/generated/api.ts` byte-identically, which the `spec-drift` CI job
-checks on every run and nightly — so a real incompatibility fails a build rather
-than going unnoticed. The peer cap is the author being conservative about a major
-they have not tested, not a break.
+checks on every run and nightly, so a real incompatibility would fail a build
+within a day. The peer cap reflects an author being conservative about a major
+version they have not tested. It is not evidence of a real break.
 
 One npm quirk to know: after changing the override, `npm install` had to run twice
 before it wrote a lockfile `npm ci` would accept (the first pass dropped
@@ -58,7 +58,7 @@ Which means the commit message _is_ the release decision:
 
 commitlint enforces the format twice: a husky `commit-msg` hook locally, and a
 CI job over every commit in a pull request, because the hook is skippable and a
-malformed type fails silently — it cuts no release at all rather than erroring.
+malformed type fails silently: it cuts no release at all instead of erroring.
 
 Both packages share one version and are always published together. `ot` pins
 `@opentranscription/sdk` to an exact version, and `scripts/setVersion.mjs` keeps

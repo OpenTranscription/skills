@@ -7,8 +7,8 @@ Read this when a command failed and the one-line message was not enough.
 **`ot login` prints a code and then nothing happens.**
 The flow waits for a human to approve in a browser. Nothing will change until
 someone opens the URL, signs in, picks a workspace and clicks approve. If no
-browser opened, the URL in the output is the whole thing — it can be opened on
-any device.
+browser opened, the URL in the output is the whole thing, and it can be opened
+on any device.
 
 **"The code expired before it was approved."**
 The code is good for 15 minutes. Run `ot login` again for a fresh one.
@@ -25,8 +25,8 @@ which one commands use by default.
 ## Workspaces
 
 **"No credential stored for organization X."**
-There is no key for that workspace, so the command stopped rather than using a
-different one. This is deliberate: an API key is bound to its workspace at
+There is no key for that workspace, so the command stopped instead of reaching
+for a different one. This is deliberate: an API key is bound to its workspace at
 issue time, so falling back would silently run the command against the wrong
 account with a perfectly valid credential. Fix it with `ot login --org X`.
 
@@ -34,7 +34,7 @@ account with a perfectly valid credential. Fix it with `ot login --org X`.
 
 **"Free minutes exhausted" / "Insufficient credits."**
 Billing is per second of audio. Free minutes reset monthly; credits do not
-expire on a schedule. Both are topped up on the web app — the CLI cannot do it.
+expire on a schedule. Both are topped up on the web app; the CLI cannot do it.
 
 **The job failed.**
 The output includes a machine-readable code. `AUDIO_DECODE_FAILED` usually means
@@ -54,8 +54,8 @@ ffmpeg -i talk.mp4 -vn -ac 1 -ar 16000 -c:a libmp3lame talk.mp3
 
 **The file is over 100 MiB.**
 That is the upload cap. Re-encoding to 16 kHz mono MP3 shrinks most recordings
-by an order of magnitude without hurting accuracy — speech models downsample to
-16 kHz anyway.
+by an order of magnitude without hurting accuracy, since speech models
+downsample to 16 kHz anyway.
 
 **Speaker labels are missing.**
 Diarization is off by default and not every model supports it. Pass `--diarize`,
@@ -68,14 +68,16 @@ Spanish recording can throw it. Pass `--language es` to skip detection.
 ## Environment
 
 **`ot: command not found` after installing.**
-The npm global bin directory is not on `PATH`. `npm bin -g` prints it. As a
-fallback, `npx @opentranscription/cli` works without a global install, at the
-cost of a slower start.
+The npm global bin directory is not on `PATH`. `npm prefix -g` prints the install
+prefix; the binaries sit in its `bin` subdirectory on macOS and Linux, and
+directly inside it on Windows. (`npm bin -g` was removed in npm 9, so it errors
+on the npm that ships with Node 22.) As a fallback, `npx @opentranscription/cli`
+works without a global install, at the cost of a slower start.
 
 **Nothing works and there is no network.**
-The CLI talks to `api.opentranscription.io`. In a sandbox without outbound
-network — some hosted agent environments — no amount of retrying will help. This
-is a terminal-and-IDE tool.
+The CLI talks to `https://opentranscription.io`. In a sandbox without outbound
+network, which includes some hosted agent environments, no amount of retrying
+will help. This is a tool for a terminal or an IDE.
 
 **Pointing at a different API.**
 `OT_API_URL` overrides the endpoint and `OT_CONFIG_DIR` overrides where

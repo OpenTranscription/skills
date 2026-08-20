@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-dark.png">
-  <img alt="OpenTranscription — every speech-to-text model worth using, one command" src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
+  <img alt="OpenTranscription. Every speech-to-text model worth using. One command." src="https://raw.githubusercontent.com/OpenTranscription/skills/main/assets/banner-light.png">
 </picture>
 
 # OpenTranscription skills
@@ -18,23 +18,25 @@ Cline, and Zed.
 
 ## Install
 
-Two steps. The first gives you the `ot` command, the second teaches your agent
-when to reach for it.
+Install the CLI and sign in, then install the skill so your agent knows when to
+reach for it.
 
 ```bash
 npm install -g @opentranscription/cli
 ot login
 ```
 
-`ot login` prints a code, opens your browser, and you approve the terminal from
-a page you are already signed in to. Nothing is pasted anywhere.
+`ot login` prints a code and opens your browser, where you approve the terminal
+from a page you are already signed in to. The key it mints goes straight to your
+config directory, so it never passes through your clipboard or your shell
+history.
 
 ```bash
 npx skills add opentranscription/skills
 ```
 
-That is it. The installer detects which agents you have and writes the skill
-where each one looks for it.
+The installer detects which agents you have and writes the skill where each one
+looks for it.
 
 <details>
 <summary>If it does not detect your agent, or you want to choose</summary>
@@ -59,8 +61,8 @@ Where the files land, per agent:
 | Cline       | `.agents/skills/` | `~/.agents/skills/`          |
 | OpenCode    | `.agents/skills/` | `~/.config/opencode/skills/` |
 
-The [skills CLI](https://github.com/vercel-labs/skills) supports 76 agents; its
-README carries the full table.
+The [skills CLI](https://github.com/vercel-labs/skills) supports many more agents
+than the four above; its README carries the full table.
 
 </details>
 
@@ -68,16 +70,16 @@ Requires Node 22 or newer.
 
 ## Why you need it
 
-If your agent can already transcribe audio, it does it with one model you did not
-choose, whose error rate you cannot see, and that you cannot swap when it gets a
+If your agent can already transcribe audio, it uses one model you did not pick.
+You cannot see that model's error rate, and you cannot swap it when it gets a
 recording wrong.
 
 Transcription is not a solved problem, and the gap between models is wider than
 most people expect. The same recording can come back clean from one and badly
-mangled by another. Names, numbers, and technical terms fail first — usually the
-exact reason you wanted the transcript. And an agent reading a bad transcript
-cannot tell that it is bad, so it reasons confidently over noise and you find out
-much later, from a decision that was never actually made.
+mangled by another. Names, numbers, and technical terms fail first, and those are
+usually the exact reason you wanted the transcript. An agent reading a bad
+transcript cannot tell that it is bad, so it reasons confidently over noise and
+you find out much later, from a decision nobody ever made.
 
 Price does not sort this out for you either. The most expensive model in the
 catalogue is not the most accurate one, and the cheapest is not the worst. Both
@@ -89,11 +91,13 @@ directions are guesses until somebody measures.
 ot models --language es
 ```
 
-Every model, from every provider we support, with its measured word error rate,
-price per minute, latency, and supported languages. The numbers come from the
-live catalogue rather than a table in a README, so they reflect what the models
-do now — model ids get upgraded in place, and a figure written down today is a
-claim about a model that may not exist next month.
+Every model, from every provider we support, with its price per minute and its
+accuracy measured on our golden set. `--language` narrows the list to models
+that support that language. The numbers come from the live catalogue, so they
+describe what the models do today. Providers upgrade
+models in place under the same id, which is why a figure written into a README
+ages badly: the id in your notes still resolves, but it now points at a
+different model with a different error rate.
 
 Pick one, or state the goal and let it route:
 
@@ -102,15 +106,15 @@ ot transcribe interview.wav --model auto/best      # lowest measured error
 ot transcribe interview.wav --model auto/cheapest  # cheapest that still works
 ```
 
-Three more things a built-in transcriber generally will not do:
+A built-in transcriber will usually not do any of this:
 
-- **Speaker labels.** `--diarize` gives you who said what, which is the
-  difference between a transcript of a meeting and a record of a decision.
-  `ot models` marks which models support it.
-- **Real subtitle files.** `.srt` and `.vtt` written to disk, not pasted into a
-  chat window.
-- **Long recordings.** Sized for hours of audio rather than whatever your agent's
-  upload limit happens to be.
+- **Speaker labels.** `--diarize` marks who said what, so a meeting transcript
+  can tell you who agreed to the Thursday deadline. `ot models` shows which
+  models support it.
+- **Subtitle files.** `.srt` and `.vtt` written to disk, ready to hand to a video
+  player.
+- **Long recordings.** Hours of audio run through the same command, and the
+  upload streams straight to storage, so your agent's own limit stops applying.
 
 ## How it works
 
@@ -119,11 +123,12 @@ Ask your agent to transcribe a meeting and it runs one command:
 ```
 $ ot transcribe meeting.mp3
 
-✓ transcribed  (8,000 words · 59m · auto/best)
+✓ transcribed  (8,000 words · 59m · deepgram/nova-3)
 
 3 speakers
 
-transcript meeting.txt
+transcript meeting.transcript.md
+json       meeting.json
 srt        meeting.srt
 vtt        meeting.vtt
 
@@ -133,44 +138,47 @@ Sections:
   00:15:40  I can have the dashboard ready by Thursday.
 ```
 
-The artifacts go to disk and the agent gets the receipt above, not the
-transcript. That hour of audio would have cost it roughly 10,400 tokens to read,
-and almost none of them would have earned their place: an agent asked to find one
-decision does not need the other fifty-nine minutes in its context to find it.
+The artifacts go to disk. The agent gets the receipt above and leaves the
+transcript where it is. That hour of audio would have cost it roughly 10,400
+tokens to read, and almost none of them would have earned their place: an agent
+asked to find one decision does not need the other fifty-nine minutes in its
+context to find it.
 
 Short recordings print inline instead, because a receipt for eight seconds of
 audio is worse than the audio.
 
-The section index is what makes the receipt usable. Those timestamps are computed
-from speaker turns and silence gaps, not summarized by a second model, so they
-cost nothing, return the same thing every time, and give the agent somewhere
-specific to look:
+The section index is what makes the receipt usable. No second model reads the
+transcript to produce it: the timestamps come from speaker turns and silence
+gaps, so they cost nothing and come back the same every time. That gives the
+agent somewhere specific to look:
 
 ```bash
 ot show <job-id> --from 12:30 --to 18:00
 ```
 
-That slice is served from the transcript already on disk, so reading a section
-twice costs nothing.
+The slicing happens in the CLI, not on the server: `ot show` fetches the job and
+prints only the range you asked for. The bytes land in this process instead of in
+the agent's context, and re-reading a section never re-transcribes anything.
 
 ## What this is
 
 Three things that share one core:
 
-|                              |                                                                                        |
-| ---------------------------- | -------------------------------------------------------------------------------------- |
-| **The skill**                | `skills/transcribing-audio` — teaches an agent when and how to reach for transcription |
-| **`@opentranscription/cli`** | the `ot` command, which is what the skill actually runs                                |
-| **`@opentranscription/sdk`** | the typed client, if you would rather write the code yourself                          |
+|                              |                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| **The skill**                | `skills/transcribing-audio`, which teaches an agent when and how to reach for transcription |
+| **`@opentranscription/cli`** | the `ot` command, which is what the skill runs                                              |
+| **`@opentranscription/sdk`** | the typed client, if you would rather write the code yourself                               |
 
 ## Where it works
 
 The skill follows the [Agent Skills](https://agentskills.dev) spec and bundles no
 scripts, so it works anywhere `ot` is on `PATH`.
 
-**It does not work in hosted sandboxes** — Claude on the web or mobile, and
+**It does not work in hosted sandboxes**: Claude on the web or mobile, and
 similar environments without outbound network access. The whole job is calling an
-API, so there is nothing for it to do there. This is a terminal-and-IDE tool.
+API, so there is nothing for it to do there. This is a tool for a terminal or an
+IDE.
 
 ## Commands
 
@@ -178,24 +186,29 @@ API, so there is nothing for it to do there. This is a terminal-and-IDE tool.
 ot login [--org <id>]     sign in through your browser
 ot whoami                 which workspaces are signed in
 ot switch <org-id>        choose which one commands use
-ot logout [--org <id>]    forget one workspace, or all
+ot logout [--org <id>]    forget one workspace, or --all of them
+
+ot models [--language es] every model, with price and measured accuracy
+ot jobs [--limit 10]      recent transcriptions
+ot show <job-id>          a transcript, or --from 12:30 --to 18:00 of one
 
 ot transcribe <file>      the whole product
   --diarize               label speakers
-  --model auto/best       or auto/cheapest, or a specific model id
+  --model auto/best       or auto/cheapest, auto/fastest, or a model id
   --language es           skip language detection
-  --vocab "Otel,Sanjay"   names and jargon the model would otherwise miss
+  --vocab "Kafka,Sanjay"  names and jargon the model would otherwise miss
   --vocab-list <id>       a vocabulary list saved in the web app
   --out <dir>             write artifacts somewhere else
 ```
 
 Each API key belongs to exactly one workspace, so `ot` stores one key per
-workspace and refuses to run against a workspace you have not logged into
-rather than quietly using another one.
+workspace. If you have not logged into the workspace a command names, it stops
+and says so. It will never quietly fall back to another one.
 
 ## Using the SDK
 
 ```ts
+import { readFile } from 'node:fs/promises';
 import { OpenTranscription } from '@opentranscription/sdk';
 
 const ot = new OpenTranscription({ apiKey: process.env.OT_API_KEY! });
@@ -212,7 +225,7 @@ const job = await ot.transcribe({
   // The words a general model has the weakest prior for, which are usually the
   // reason you wanted the transcript. Merged with a list saved in the web app
   // when you pass `vocabularyListId` too.
-  customWords: ['EBITDA', 'Sanjay Bhattacharya', 'Nasdaq', 'Otel'],
+  customWords: ['EBITDA', 'Sanjay Bhattacharya', 'Nasdaq', 'ARR'],
 });
 
 const done = await ot.waitForJob(job.id);
@@ -220,7 +233,7 @@ const done = await ot.waitForJob(job.id);
 
 Every request field is checked against types generated from the published
 OpenAPI document. A field the API renames stops compiling, and a field it adds
-that this client does not map fails the build by name — the mapping cannot
+that this client does not map fails the build by name. The mapping cannot
 silently fall behind the contract.
 
 ## Contributing

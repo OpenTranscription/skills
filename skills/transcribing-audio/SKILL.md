@@ -22,8 +22,8 @@ If that fails, install it:
 npm install -g @opentranscription/cli
 ```
 
-If `npm` is also missing, stop and tell the user Node.js 22+ is required —
-guessing at a package manager wastes a turn and usually installs nothing.
+If `npm` is also missing, stop and tell the user Node.js 22+ is required.
+Guessing at a package manager wastes a turn and usually installs nothing.
 
 Then check for a signed-in account:
 
@@ -33,7 +33,7 @@ ot whoami
 
 If it says "Not signed in", run `ot login`. It prints a code and a URL and waits
 for the user to approve in a browser. **This needs a human.** Show them the code
-and the URL from the output and wait — do not try to complete it yourself.
+and the URL from the output and wait. Do not try to complete it yourself.
 
 ## Transcribing
 
@@ -48,6 +48,7 @@ Useful flags:
 | `--diarize`             | more than one speaker, or the user asks who said what |
 | `--model auto/best`     | accuracy matters more than cost                       |
 | `--model auto/cheapest` | long file, rough transcript is fine                   |
+| `--model auto/fastest`  | the user is waiting on the result                     |
 | `--language es`         | you know the language; skips detection                |
 | `--vocab <words>`       | the audio contains names or jargon (see below)        |
 | `--out <dir>`           | write artifacts somewhere other than beside the audio |
@@ -57,19 +58,19 @@ Run `ot models` to see what is available with prices and measured accuracy.
 ## Custom vocabulary
 
 Speech models get the sentence right and the one word that mattered wrong.
-Proper nouns, product names, drug names, ticker symbols, internal jargon — these
-are the words a general model has the weakest prior for, and they are usually
-the reason someone wanted the transcript.
+Proper nouns, product names, drug names, ticker symbols, and internal jargon are
+the words a general model has the weakest prior for, and they are usually the
+reason someone wanted the transcript.
 
 Pass them ahead of time:
 
 ```
-ot transcribe standup.mp3 --vocab "Kubernetes,Grafana,Otel,Sanjay,Bhattacharya"
+ot transcribe standup.mp3 --vocab "Kubernetes,Grafana,Sanjay Bhattacharya"
 ```
 
 You usually already know these terms. They are in the file name, the
 surrounding code, the ticket, or what the user just told you. Supply them on the
-first run — a second run to fix a misspelling costs money and takes as long as
+first run: a second run to fix a misspelling costs money and takes as long as
 the first.
 
 Keep the list to terms a model would plausibly miss. Padding it with ordinary
@@ -78,23 +79,25 @@ English words does not help and can bias the model toward them.
 For a list the user maintains in the web app, pass its id instead:
 `--vocab-list <id>`. Both can be given; they are merged.
 
-Not every model supports this. Ones that do not ignore the words rather than
-failing, so it is safe to pass them either way.
+Not every model supports this. A model that does not will ignore the words
+instead of failing, so passing them is always safe.
 
 ## Reading the output
 
 Artifacts are always written next to the audio (or to `--out`):
 
-- `<name>.transcript.md` — the text, with speaker labels when diarized
-- `<name>.srt` / `<name>.vtt` — subtitles
-- `<name>.json` — the full job, including per-word timings
+- `<name>.transcript.md`: the text, with speaker labels when diarized
+- `<name>.json`: the full job, including per-word timings
+- `<name>.srt` / `<name>.vtt`: subtitles, when the model returned segments
 
-**Short audio**: the transcript is printed directly. Use it.
+**Short audio**: the transcript is printed directly. Use it. The cutoff is about
+2,000 tokens of transcript, so most recordings under ten minutes come back this
+way.
 
-**Long audio**: a receipt is printed instead — word count, duration, model, the
-artifact paths, and a section index of timestamps. This is deliberate. Read the
-sections to find what matters, then open just that part of the transcript file
-rather than loading the whole thing.
+**Long audio**: a receipt is printed instead, carrying word count, duration,
+model, the artifact paths, and a section index of timestamps. This is
+deliberate. Read the sections to find what matters, then open just that part of
+the transcript file instead of loading the whole thing.
 
 ## When something goes wrong
 
@@ -114,7 +117,7 @@ More detail in [references/troubleshooting.md](references/troubleshooting.md).
 
 ## Do not
 
-- Do not print a full transcript back to the user unless they asked for it — the
+- Do not print a full transcript back to the user unless they asked for it. The
   file path is usually the useful answer.
 - Do not transcribe the same file twice to "check" a result; it costs money and
   returns the same thing.
