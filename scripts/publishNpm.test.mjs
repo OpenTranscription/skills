@@ -1,6 +1,8 @@
+import { dirname, join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { NPM_PACKAGES, publishNpm } from './publishNpm.mjs';
+import { NPM_PACKAGES, npmCommand, publishNpm } from './publishNpm.mjs';
 
 /**
  * A fake `npm`, recording what it was asked to do.
@@ -13,10 +15,16 @@ const fakeNpm = ({ onView = () => '', onPublish = () => '' } = {}) => {
   const calls = [];
   const exec = async (cmd, args) => {
     calls.push([cmd, ...args].join(' '));
-    if (args[0] === 'view') return { stdout: onView(args[1]), stderr: '' };
-    return { stdout: onPublish(args[2]), stderr: '' };
+    // By name, not by index: the real command can carry an npm-cli.js prefix
+    // ahead of the subcommand, and a positional fake would only ever agree with
+    // whichever platform wrote it.
+    const at = args.findIndex((a) => a === 'view' || a === 'publish');
+    if (args[at] === 'view')
+      return { stdout: onView(args[at + 1]), stderr: '' };
+    return { stdout: onPublish(args[at + 1]), stderr: '' };
   };
-  return { exec, calls, log: () => {} };
+  // `npm` pinned so these assert behaviour, not the machine they run on.
+  return { exec, calls, log: () => {}, npm: ['npm', []] };
 };
 
 const publishes = (calls) =>
@@ -137,8 +145,85 @@ describe('publishNpm', () => {
     await publishNpm('0.3.0', { exec, log: () => {} });
 
     for (const { cmd, args } of seen) {
-      expect(cmd).toBe('npm');
+      // Which binary is `npmCommand`'s business. What matters here is that
+      // arguments arrive as an array, so no shell ever parses the version, and
+      // that nothing being run is a batch wrapper.
       expect(Array.isArray(args)).toBe(true);
+      for (const part of [cmd, ...args]) {
+        expect(part).not.toMatch(/\.(cmd|bat)$/i);
+      }
+    }
+  });
+});
+
+/**
+ * Running npm from Node without a shell.
+ *
+ * On Windows npm is `npm.cmd`, and since the CVE-2024-27980 fix Node refuses to
+ * execFile a `.cmd` at all: bare `npm` gives ENOENT, `npm.cmd` gives EINVAL.
+ * The usual advice is `shell: true`, which puts an interpolated version string
+ * back in front of a shell for a script whose whole job is publishing.
+ *
+ * `npm.cmd` is a two-line wrapper that runs node against `npm-cli.js`, so
+ * calling that file with `process.execPath` skips the wrapper, needs no shell,
+ * and is the same on every platform.
+ */
+describe('npmCommand', () => {
+  const NODE = '/opt/node/bin/node';
+
+  it('prefers the npm-cli.js that npm itself points at', () => {
+    const [cmd, prefix] = npmCommand(
+      { npm_execpath: '/global/npm/bin/npm-cli.js' },
+      NODE,
+      (p) => p === '/global/npm/bin/npm-cli.js'
+    );
+
+    expect(cmd).toBe(NODE);
+    expect(prefix).toEqual(['/global/npm/bin/npm-cli.js']);
+  });
+
+  it('ignores an npm_execpath that is a shell wrapper rather than a script', () => {
+    // Older npm and some installers set this to the .cmd. Running THAT through
+    // node is exactly the EINVAL this avoids.
+    const [cmd] = npmCommand(
+      { npm_execpath: 'C:\npm\npm.cmd' },
+      NODE,
+      () => true
+    );
+
+    expect(cmd).not.toBe('C:\npm\npm.cmd');
+  });
+
+  it('falls back to the npm bundled beside the running node', () => {
+    const bundled = join(
+      dirname(NODE),
+      'node_modules',
+      'npm',
+      'bin',
+      'npm-cli.js'
+    );
+
+    const [cmd, prefix] = npmCommand({}, NODE, (p) => p === bundled);
+
+    expect(cmd).toBe(NODE);
+    expect(prefix).toEqual([bundled]);
+  });
+
+  it('falls back to bare npm when no script can be found', () => {
+    // The POSIX case where npm is simply on PATH, which is what CI hits.
+    expect(npmCommand({}, NODE, () => false)).toEqual(['npm', []]);
+  });
+
+  it('never returns a .cmd or .bat, whatever the environment claims', () => {
+    for (const wrapper of ['C:\npm\npm.cmd', 'C:\npm\npm.bat']) {
+      const [cmd, prefix] = npmCommand(
+        { npm_execpath: wrapper },
+        NODE,
+        () => true
+      );
+      for (const part of [cmd, ...prefix]) {
+        expect(part).not.toMatch(/\.(cmd|bat)$/i);
+      }
     }
   });
 });

@@ -1,7 +1,51 @@
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
+
+/**
+ * How to invoke npm from here without a shell, on any platform.
+ *
+ * Returns `[command, argsPrefix]`. Releases run on Linux, where bare `npm` on
+ * PATH is fine, but this has to work locally too: checking the publish oracle
+ * against the real registry is the last sane step before a first-ever publish,
+ * and on Windows that is exactly where it fell over.
+ *
+ * There, npm is `npm.cmd`, and since the CVE-2024-27980 fix Node refuses to
+ * `execFile` a `.cmd` at all — bare `npm` gives ENOENT, `npm.cmd` gives EINVAL.
+ * The common advice is `shell: true`, which puts an interpolated version string
+ * back in front of a shell in the one script whose job is publishing.
+ *
+ * `npm.cmd` is only a wrapper that runs node against `npm-cli.js`. Calling that
+ * script with `process.execPath` skips the wrapper: no shell, no new
+ * dependency, and identical on every platform. `npm_execpath` is npm's own
+ * pointer at that file, checked first, and rejected if it names a wrapper
+ * rather than a script, since running a `.cmd` through node is the same EINVAL.
+ */
+export const npmCommand = (
+  env = process.env,
+  execPath = process.execPath,
+  exists = existsSync
+) => {
+  const fromNpm = env.npm_execpath;
+  if (fromNpm?.endsWith('.js') && exists(fromNpm)) return [execPath, [fromNpm]];
+
+  const beside = dirname(execPath);
+  const candidates = [
+    // Windows, and any layout where node and npm sit together.
+    join(beside, 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+    // The usual POSIX prefix layout: <prefix>/bin/node, <prefix>/lib/...
+    join(beside, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+  ];
+  for (const candidate of candidates) {
+    if (exists(candidate)) return [execPath, [candidate]];
+  }
+
+  // PATH it is. Correct wherever npm is not a batch wrapper, which is CI.
+  return ['npm', []];
+};
 
 export const NPM_PACKAGES = [
   '@opentranscription/sdk',
@@ -29,9 +73,11 @@ const isNotFound = (error) =>
  * version, and the chain would die on the package that already succeeded.
  * Anything else is unknown, and unknown aborts before publishing anything.
  */
-const isPublished = async (pkg, version, exec) => {
+const isPublished = async (pkg, version, exec, npm) => {
+  const [cmd, prefix] = npm;
   try {
-    const { stdout } = await exec('npm', [
+    const { stdout } = await exec(cmd, [
+      ...prefix,
       'view',
       `${pkg}@${version}`,
       'version',
@@ -62,17 +108,18 @@ const isPublished = async (pkg, version, exec) => {
  */
 export const publishNpm = async (
   version,
-  { exec = run, log = console.log } = {}
+  { exec = run, log = console.log, npm = npmCommand() } = {}
 ) => {
   const published = [];
+  const [cmd, prefix] = npm;
 
   for (const pkg of NPM_PACKAGES) {
-    if (await isPublished(pkg, version, exec)) {
+    if (await isPublished(pkg, version, exec, npm)) {
       log(`${pkg}@${version} is already on the registry, skipping`);
       continue;
     }
 
-    await exec('npm', ['publish', '-w', pkg]);
+    await exec(cmd, [...prefix, 'publish', '-w', pkg]);
     log(`published ${pkg}@${version}`);
     published.push(pkg);
   }
