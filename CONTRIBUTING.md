@@ -44,8 +44,10 @@ number by hand.
 
 **The changelog is the [Releases page](https://github.com/OpenTranscription/skills/releases),
 not a file in the repo.** A committed `CHANGELOG.md` would only restate what the
-tag and the release already say, and it costs a `chore(release)` commit on `main`
-every time.
+tag and the release notes already say. It would not cost an extra commit, though:
+`@semantic-release/git` already pushes `chore(release): <version> [skip ci]` on
+every release to carry the stamped `package.json` files, so `main` gains one
+commit per release whether a changelog exists or not.
 
 Which means the commit message _is_ the release decision:
 
