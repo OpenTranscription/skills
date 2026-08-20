@@ -107,6 +107,7 @@ export const models = async (
 
   log('auto/best        pick the most accurate model that fits');
   log('auto/cheapest    pick the cheapest model that fits');
+  log('auto/fastest     pick the fastest model that fits');
   log('');
 
   for (const model of catalog) {

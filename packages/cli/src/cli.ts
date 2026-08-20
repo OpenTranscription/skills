@@ -14,7 +14,7 @@ import { show } from './commands/show.js';
 import { transcribe } from './commands/transcribe.js';
 import { cliVersion } from './version.js';
 
-const HELP = `ot — transcribe audio from your terminal
+const HELP = `ot: transcribe audio from your terminal
 
 Usage
   ot login [--org <id>]        sign in (opens your browser)
@@ -28,7 +28,7 @@ Usage
     --from 1:30 --to 4:00      only part of it
 
   ot transcribe <file>         transcribe audio; writes artifacts next to it
-    --model <id>               e.g. auto/best, auto/cheapest, openai/whisper-large-v3
+    --model <id>               e.g. auto/best, auto/cheapest, auto/fastest
     --language <code>          force a language instead of detecting it
     --diarize                  label speakers
     --vocab <words>            comma-separated jargon, names, product terms

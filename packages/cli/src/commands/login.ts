@@ -45,7 +45,7 @@ export const login = async (options: LoginOptions = {}): Promise<number> => {
         log(`  Open:       ${prompt.verificationUriComplete}`);
         log('');
         log(
-          `  Waiting for approval — the code expires in ${Math.round(
+          `  Waiting for approval. The code expires in ${Math.round(
             prompt.expiresInSeconds / 60
           )} minutes.`
         );
@@ -67,7 +67,7 @@ export const login = async (options: LoginOptions = {}): Promise<number> => {
   log('');
   log(`✓ Signed in to ${name}.`);
   if (count > 1) {
-    log(`  ${count} workspaces available — use --org or \`ot switch\`.`);
+    log(`  ${count} workspaces available. Use --org or \`ot switch\`.`);
   }
 
   return 0;

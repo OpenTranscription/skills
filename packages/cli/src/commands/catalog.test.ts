@@ -60,6 +60,10 @@ describe('ot models', () => {
 
     expect(lines[0]).toContain('auto/best');
     expect(lines[1]).toContain('auto/cheapest');
+    // The API routes all three (VIRTUAL_MODEL_MAP in the product repo). Leaving
+    // one out of the only place an agent is told what it may pass makes that
+    // strategy unreachable in practice.
+    expect(lines[2]).toContain('auto/fastest');
   });
 
   /**

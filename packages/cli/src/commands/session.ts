@@ -25,7 +25,7 @@ export const whoami = async (options: Io = {}): Promise<number> => {
     const marker = id === store.defaultOrgId ? '*' : ' ';
     log(`${marker} ${orgLabel(store, id)}  (${id})`);
   }
-  if (ids.length > 1) log('\n* default — change it with `ot switch`.');
+  if (ids.length > 1) log('\n* default. Change it with `ot switch`.');
 
   return 0;
 };
