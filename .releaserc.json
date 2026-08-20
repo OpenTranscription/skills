@@ -63,7 +63,7 @@
       "@semantic-release/exec",
       {
         "prepareCmd": "node scripts/set-version.mjs ${nextRelease.version} && npm install --package-lock-only --ignore-scripts",
-        "publishCmd": "npm publish -w @opentranscription/sdk && npm publish -w @opentranscription/cli"
+        "publishCmd": "python -m build packages/sdk-python && node scripts/publish-npm.mjs ${nextRelease.version}"
       }
     ],
     [
@@ -72,7 +72,8 @@
         "assets": [
           "package.json",
           "package-lock.json",
-          "packages/*/package.json"
+          "packages/*/package.json",
+          "packages/sdk-python/pyproject.toml"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]"
       }

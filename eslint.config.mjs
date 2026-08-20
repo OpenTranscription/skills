@@ -118,6 +118,13 @@ const eslintConfig = defineConfig([
     'tmp-e2e/**',
     // Generated from the published OpenAPI document — `npm run typegen` owns it.
     'packages/sdk/src/generated/**',
+    // The Python virtualenv CONTRIBUTING tells you to create. pip vendors a
+    // handful of .js files inside it, and `eslint .` reports three errors in
+    // urllib3's emscripten worker. CI never sees them, because CI has no venv,
+    // so this only ever breaks the pre-push hook for a contributor who followed
+    // the setup instructions.
+    '.venv-py/**',
+    '**/.venv/**',
   ]),
 ]);
 

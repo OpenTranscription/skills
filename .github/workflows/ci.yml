@@ -83,6 +83,55 @@ jobs:
           --to ${{ github.event.pull_request.head.sha }}
           --verbose
 
+  python:
+    name: Python SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor this package claims to support, and the current release.
+        # A break shows up at one end or the other; the middle versions rarely
+        # differ from both.
+        python-version: ['3.10', '3.13']
+
+    defaults:
+      run:
+        working-directory: packages/sdk-python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+      - name: Type check
+        run: mypy
+
+      # Includes the spec-parity suite, which reads the SAME generated types the
+      # spec-drift job below re-derives from the live spec. So the Python client
+      # cannot silently fall behind an API change either.
+      - name: Test
+        run: pytest -q
+
+      - name: Build the distributions
+        run: |
+          pip install build
+          python -m build
+
   spec-drift:
     name: Spec drift
     runs-on: ubuntu-latest

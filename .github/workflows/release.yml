@@ -47,6 +47,16 @@ jobs:
       - name: Ensure npm supports trusted publishing
         run: npm install -g npm@latest
 
+      # The Python client releases on the same version as the npm ones, from the
+      # same commit. semantic-release builds its distributions during publish,
+      # after it has stamped pyproject.toml.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install the Python build backend
+        run: pip install build
+
       - run: npm ci
 
       # Publishing something that does not build or pass its tests is worse than
@@ -64,3 +74,34 @@ jobs:
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # `dist/` exists only when semantic-release decided there was a release to
+      # cut. Gating on the artifact rather than on a parsed version keeps a
+      # no-release run from re-publishing the version already on PyPI, which
+      # PyPI rejects outright.
+      - name: Did a release happen?
+        id: dists
+        run: |
+          if compgen -G "packages/sdk-python/dist/*.whl" > /dev/null; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Off until the PyPI project has a trusted publisher pointing at this
+      # workflow. Set the PYPI_PUBLISH_ENABLED repository variable to `true` to
+      # turn it on. A variable rather than continue-on-error, so that once it IS
+      # on, a failed publish fails the run instead of being swallowed.
+      - name: Publish to PyPI
+        if: >-
+          steps.dists.outputs.built == 'true'
+          && vars.PYPI_PUBLISH_ENABLED == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk-python/dist
+          # semantic-release tags on success, so a failure HERE leaves a tagged,
+          # npm-published release that no later push will retry: the next run
+          # finds no new commits. Recovery is re-running this workflow by hand,
+          # and that only works if re-uploading what PyPI already has is a
+          # no-op rather than a 400.
+          skip-existing: true

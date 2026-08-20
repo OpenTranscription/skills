@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "opentranscription"
+version = "0.2.1"
+description = "Typed client for the OpenTranscription API: upload, transcribe, poll, and read results."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "OpenTranscription" }]
+keywords = [
+  "transcription",
+  "speech-to-text",
+  "stt",
+  "whisper",
+  "deepgram",
+  "assemblyai",
+  "opentranscription",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+dependencies = ["httpx>=0.27,<1"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "respx>=0.21",
+  "mypy>=1.13",
+  "ruff>=0.8",
+]
+
+[project.urls]
+Homepage = "https://opentranscription.io"
+Documentation = "https://opentranscription.io/docs"
+Source = "https://github.com/OpenTranscription/skills"
+Issues = "https://github.com/OpenTranscription/skills/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opentranscription"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]

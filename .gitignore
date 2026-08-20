@@ -4,3 +4,12 @@ node_modules/
 
 # Local end-to-end scratch (real audio, real transcripts)
 tmp-e2e/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv-py/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
