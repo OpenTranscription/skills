@@ -7,11 +7,13 @@
 
 [![cli](https://img.shields.io/npm/v/@opentranscription/cli?label=cli)](https://www.npmjs.com/package/@opentranscription/cli)
 [![sdk](https://img.shields.io/npm/v/@opentranscription/sdk?label=sdk)](https://www.npmjs.com/package/@opentranscription/sdk)
+[![pypi](https://img.shields.io/pypi/v/opentranscription?label=python)](https://pypi.org/project/opentranscription/)
 [![node](https://img.shields.io/node/v/@opentranscription/cli)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/@opentranscription/cli)](./LICENSE)
 
 Give your coding agent the ability to transcribe audio. Agent Skill, CLI, and
-typed SDK for [OpenTranscription](https://opentranscription.io).
+typed clients for TypeScript and Python, all for
+[OpenTranscription](https://opentranscription.io).
 
 Works in Claude Code, Codex, Cursor, Gemini CLI, VS Code / Copilot, Windsurf,
 Cline, and Zed.
@@ -162,13 +164,16 @@ the agent's context, and re-reading a section never re-transcribes anything.
 
 ## What this is
 
-Three things that share one core:
+Four things against one API:
 
 |                              |                                                                                             |
 | ---------------------------- | ------------------------------------------------------------------------------------------- |
 | **The skill**                | `skills/transcribing-audio`, which teaches an agent when and how to reach for transcription |
 | **`@opentranscription/cli`** | the `ot` command, which is what the skill runs                                              |
-| **`@opentranscription/sdk`** | the typed client, if you would rather write the code yourself                               |
+| **`@opentranscription/sdk`** | the typed client for TypeScript, if you would rather write the code yourself                |
+| **`opentranscription`**      | the same client for Python, sync and async, on PyPI                                         |
+
+All four release together on one version.
 
 ## Where it works
 
@@ -207,6 +212,8 @@ and says so. It will never quietly fall back to another one.
 
 ## Using the SDK
 
+### TypeScript
+
 ```ts
 import { readFile } from 'node:fs/promises';
 import { OpenTranscription } from '@opentranscription/sdk';
@@ -235,6 +242,36 @@ Every request field is checked against types generated from the published
 OpenAPI document. A field the API renames stops compiling, and a field it adds
 that this client does not map fails the build by name. The mapping cannot
 silently fall behind the contract.
+
+### Python
+
+```bash
+pip install opentranscription
+```
+
+```python
+from opentranscription import OpenTranscription
+
+ot = OpenTranscription(api_key=os.environ["OT_API_KEY"])
+
+job = ot.transcribe(
+    "earnings-call.mp3",
+    models=["assemblyai/best", "deepgram/nova-3"],
+    diarization=True,
+    custom_words=["EBITDA", "Sanjay Bhattacharya", "Nasdaq", "ARR"],
+)
+
+done = ot.wait_for_job(job["id"])
+print(done["transcript"]["text"])
+```
+
+Pass a path, an open binary file, or raw bytes. There is an
+`AsyncOpenTranscription` with the same surface for async callers.
+
+Python cannot check the field list at compile time the way TypeScript does, so
+the test suite does it instead: it reads the same generated types and fails when
+the API has a request field this client neither offers nor explicitly declines.
+Requires Python 3.10 or newer.
 
 ## Contributing
 
