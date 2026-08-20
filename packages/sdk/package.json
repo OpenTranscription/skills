@@ -1,6 +1,6 @@
 {
   "name": "@opentranscription/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typed client for the OpenTranscription API — upload, transcribe, poll, and read results.",
   "license": "MIT",
   "type": "module",
