@@ -37,13 +37,6 @@ export type OpenTranscriptionOptions = {
 };
 
 /**
- * Accepted by the API but not yet in the published OpenAPI document, so the
- * generated types cannot vouch for it. `spec-drift` in CI goes red the day the
- * spec catches up: run `npm run typegen` and delete this.
- */
-type UndocumentedField = 'audio_retention_days';
-
-/**
  * Request fields this client deliberately does not surface.
  *
  * `file_path` is the server's name for the uploaded object — `transcribe`
@@ -83,7 +76,7 @@ const REQUEST_FIELDS = {
   customModelId: 'custom_model_id',
 } as const satisfies Record<
   keyof Omit<TranscribeInput, 'file' | 'fileName'>,
-  keyof ApiRequest | UndocumentedField
+  keyof ApiRequest
 >;
 
 /**

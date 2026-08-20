@@ -76,6 +76,30 @@ export interface paths {
         patch: operations["updateTranscription"];
         trace?: never;
     };
+    "/api/v1/transcriptions/{id}/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a transcription job's original audio
+         * @description Redirects (302) to a short-lived signed URL (5-minute expiry) for the job's original uploaded audio file, served directly from storage. **Required scope:** `transcriptions:read`.
+         *
+         *     Follow the redirect to fetch the audio bytes — this endpoint itself never returns audio. `Content-Disposition: attachment` is set so the download preserves the original filename.
+         *
+         *     A mic (real-time) recording never has a stored audio object, so it answers 404 with `code: audio_not_available` rather than 410 — no retention window ever applied to it. A batch/file job whose audio has since been purged by retention answers 410 with `code: audio_not_retained`.
+         */
+        get: operations["getTranscriptionAudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads": {
         parameters: {
             query?: never;
@@ -557,6 +581,11 @@ export interface components {
              * @description Confidence threshold for code-switching detection (0.0-1.0). AssemblyAI only.
              */
             code_switching_confidence_threshold?: number;
+            /**
+             * @description Override your organization's API audio-retention setting for this job. An integer deletes the stored audio after that many days; `0` deletes it on completion; `null` retains it indefinitely, overriding any organization-level limit. Omit the field to leave the organization setting in force — `null` is a value, not the default.
+             * @example 7
+             */
+            audio_retention_days?: number | null;
         };
         /** @description Partial update of an existing transcription job. All properties optional. */
         UpdateTranscriptionRequest: {
@@ -1603,6 +1632,64 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getTranscriptionAudio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID of the transcription job. */
+                id: components["parameters"]["PathJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to a signed URL for the audio object. The signed URL expires after 5 minutes; request this endpoint again to get a fresh one. */
+            302: {
+                headers: {
+                    /** @description Signed, time-limited URL to the audio file. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The job does not exist, belongs to another organization, was deleted, or is a mic recording that never had a stored audio object (`code: audio_not_available`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"] & {
+                        /** @description Machine-readable error code. `audio_not_available` when the job is a mic recording — never present for a plain not-found. */
+                        code?: string;
+                    };
+                };
+            };
+            /** @description The job's audio was retained at completion but has since been purged by the organization's retention policy. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "error": "Audio is no longer retained for this job",
+                     *       "code": "audio_not_retained"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"] & {
+                        /** @description `audio_not_retained` — the stored audio object has been deleted by retention. */
+                        code?: string;
+                    };
+                };
+            };
             429: components["responses"]["RateLimited"];
             500: components["responses"]["InternalError"];
         };
