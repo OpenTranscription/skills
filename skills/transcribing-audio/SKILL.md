@@ -49,9 +49,37 @@ Useful flags:
 | `--model auto/best`     | accuracy matters more than cost                       |
 | `--model auto/cheapest` | long file, rough transcript is fine                   |
 | `--language es`         | you know the language; skips detection                |
+| `--vocab <words>`       | the audio contains names or jargon (see below)        |
 | `--out <dir>`           | write artifacts somewhere other than beside the audio |
 
 Run `ot models` to see what is available with prices and measured accuracy.
+
+## Custom vocabulary
+
+Speech models get the sentence right and the one word that mattered wrong.
+Proper nouns, product names, drug names, ticker symbols, internal jargon — these
+are the words a general model has the weakest prior for, and they are usually
+the reason someone wanted the transcript.
+
+Pass them ahead of time:
+
+```
+ot transcribe standup.mp3 --vocab "Kubernetes,Grafana,Otel,Sanjay,Bhattacharya"
+```
+
+You usually already know these terms. They are in the file name, the
+surrounding code, the ticket, or what the user just told you. Supply them on the
+first run — a second run to fix a misspelling costs money and takes as long as
+the first.
+
+Keep the list to terms a model would plausibly miss. Padding it with ordinary
+English words does not help and can bias the model toward them.
+
+For a list the user maintains in the web app, pass its id instead:
+`--vocab-list <id>`. Both can be given; they are merged.
+
+Not every model supports this. Ones that do not ignore the words rather than
+failing, so it is safe to pass them either way.
 
 ## Reading the output
 
@@ -91,3 +119,6 @@ More detail in [references/troubleshooting.md](references/troubleshooting.md).
 - Do not transcribe the same file twice to "check" a result; it costs money and
   returns the same thing.
 - Do not pass `--model` a name you have not seen in `ot models`.
+- Do not re-run with `--vocab` after seeing a misspelling in the output when you
+  could have supplied the term the first time. Read the context for names before
+  the first run, not after.

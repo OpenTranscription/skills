@@ -31,6 +31,8 @@ Usage
     --model <id>               e.g. auto/best, auto/cheapest, openai/whisper-large-v3
     --language <code>          force a language instead of detecting it
     --diarize                  label speakers
+    --vocab <words>            comma-separated jargon, names, product terms
+    --vocab-list <id>          a vocabulary list saved in the web app
     --out <dir>                write artifacts somewhere else
 
 Options
@@ -42,6 +44,8 @@ const options = {
   org: { type: 'string' },
   model: { type: 'string' },
   language: { type: 'string' },
+  vocab: { type: 'string' },
+  'vocab-list': { type: 'string' },
   out: { type: 'string' },
   diarize: { type: 'boolean' },
   all: { type: 'boolean' },
@@ -123,6 +127,8 @@ export const main = async (argv: string[]): Promise<number> => {
         orgId: values.org as string | undefined,
         model: values.model as string | undefined,
         language: values.language as string | undefined,
+        vocab: values.vocab as string | undefined,
+        vocabList: values['vocab-list'] as string | undefined,
         outDir: values.out as string | undefined,
         diarize: values.diarize as boolean | undefined,
       });

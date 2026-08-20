@@ -278,3 +278,131 @@ describe('waitForJob', () => {
     ).rejects.toThrow(/abort/i);
   });
 });
+
+describe('transcribe parameters', () => {
+  /** Runs a transcribe and returns the JSON body sent to POST /transcriptions. */
+  const bodySentFor = async (
+    input: Omit<
+      Parameters<OpenTranscription['transcribe']>[0],
+      'file' | 'fileName'
+    >
+  ): Promise<Record<string, unknown>> => {
+    const { fetch, calls } = stubFetch({
+      '/api/v1/uploads': () =>
+        json({
+          upload_url: 'https://storage.test/put/abc',
+          file_path: 'org/abc.mp3',
+        }),
+      'storage.test': () => new Response(null, { status: 200 }),
+      '/api/v1/transcriptions': () => json({ id: 'job-1', status: 'queued' }),
+    });
+
+    await client(fetch).transcribe({
+      file: new Uint8Array([1]),
+      fileName: 'a.mp3',
+      ...input,
+    });
+
+    const create = calls.at(-1)!;
+    return JSON.parse(create.init!.body as string) as Record<string, unknown>;
+  };
+
+  it('sends inline custom vocabulary as custom_words', async () => {
+    const body = await bodySentFor({
+      model: 'assemblyai/best',
+      customWords: ['Kubernetes', 'Grafana', 'Postgres'],
+    });
+
+    expect(body.custom_words).toEqual(['Kubernetes', 'Grafana', 'Postgres']);
+  });
+
+  it('sends a saved vocabulary list as vocabulary_list_id', async () => {
+    const body = await bodySentFor({
+      vocabularyListId: '3f1c9a2e-0000-4000-8000-000000000001',
+    });
+
+    expect(body.vocabulary_list_id).toBe(
+      '3f1c9a2e-0000-4000-8000-000000000001'
+    );
+  });
+
+  it('sends a model fallback chain as models', async () => {
+    const body = await bodySentFor({
+      models: ['deepgram/nova-3', 'openai/whisper-large-v3'],
+    });
+
+    expect(body.models).toEqual(['deepgram/nova-3', 'openai/whisper-large-v3']);
+    expect(body).not.toHaveProperty('model');
+  });
+
+  it('maps every camelCase option to its snake_case API field', async () => {
+    const body = await bodySentFor({
+      webhookUrl: 'https://example.com/hook',
+      codeSwitching: true,
+      codeSwitchingConfidenceThreshold: 0.7,
+      customModelId: '3f1c9a2e-0000-4000-8000-000000000002',
+      useOwnKey: true,
+      title: 'Board meeting',
+      metadata: { case_id: 'A-17' },
+    });
+
+    expect(body).toMatchObject({
+      webhook_url: 'https://example.com/hook',
+      code_switching: true,
+      code_switching_confidence_threshold: 0.7,
+      custom_model_id: '3f1c9a2e-0000-4000-8000-000000000002',
+      use_own_key: true,
+      title: 'Board meeting',
+      metadata: { case_id: 'A-17' },
+    });
+  });
+
+  it('omits options the caller did not give rather than sending nulls', async () => {
+    const body = await bodySentFor({ model: 'auto/best' });
+
+    expect(Object.keys(body).sort()).toEqual(['file_path', 'model']);
+  });
+
+  it('sends false and null, which mean something different from omitted', async () => {
+    // `diarization: false` forces it OFF on a model that would default it on,
+    // and `audio_retention_days: null` means retain indefinitely. Dropping
+    // either as falsy would silently apply the opposite policy.
+    const body = await bodySentFor({
+      model: 'auto/best',
+      diarization: false,
+      audioRetentionDays: null,
+    });
+
+    expect(body.diarization).toBe(false);
+    expect(body.audio_retention_days).toBeNull();
+  });
+});
+
+describe('waitForJob', () => {
+  it('waits with the injected sleep, not the real clock', async () => {
+    const waits: number[] = [];
+    let polls = 0;
+
+    const { fetch } = stubFetch({
+      '/api/v1/transcriptions/job-1': () => {
+        polls += 1;
+        return json({
+          id: 'job-1',
+          status: polls < 3 ? 'processing' : 'completed',
+        });
+      },
+    });
+
+    const job = await new OpenTranscription({
+      apiKey: 'ot_test',
+      baseUrl: 'https://api.test',
+      fetch,
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+    }).waitForJob('job-1', { pollIntervalMs: 30_000 });
+
+    expect(job.status).toBe('completed');
+    expect(waits).toEqual([30_000, 30_000]);
+  });
+});

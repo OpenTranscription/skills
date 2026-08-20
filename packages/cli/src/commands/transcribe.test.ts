@@ -18,7 +18,10 @@ const segments = [
 ];
 
 const fakeClient = (over: Record<string, unknown> = {}) => ({
-  transcribe: vi.fn(async () => ({ id: 'job-1', status: 'queued' })),
+  transcribe: vi.fn(async (_input: Record<string, unknown>) => ({
+    id: 'job-1',
+    status: 'queued',
+  })),
   waitForJob: vi.fn(async () => ({
     id: 'job-1',
     status: 'completed',
@@ -152,5 +155,70 @@ describe('ot transcribe', () => {
     expect(client.transcribe).toHaveBeenCalledWith(
       expect.objectContaining({ model: 'auto/best', fileName: 'interview.mp3' })
     );
+  });
+});
+
+describe('ot transcribe — vocabulary', () => {
+  it('splits --vocab on commas and trims each term', async () => {
+    const client = fakeClient();
+
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      vocab: 'Kubernetes, Grafana ,Postgres',
+      client: client as never,
+    });
+
+    expect(client.transcribe.mock.calls[0]![0]).toMatchObject({
+      customWords: ['Kubernetes', 'Grafana', 'Postgres'],
+    });
+  });
+
+  it('drops empty terms from a trailing or doubled comma', async () => {
+    const client = fakeClient();
+
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      vocab: 'Kubernetes,,Grafana,',
+      client: client as never,
+    });
+
+    expect(client.transcribe.mock.calls[0]![0]).toMatchObject({
+      customWords: ['Kubernetes', 'Grafana'],
+    });
+  });
+
+  it('passes a saved list id through untouched', async () => {
+    const client = fakeClient();
+
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      vocabList: '3f1c9a2e-0000-4000-8000-000000000001',
+      client: client as never,
+    });
+
+    expect(client.transcribe.mock.calls[0]![0]).toMatchObject({
+      vocabularyListId: '3f1c9a2e-0000-4000-8000-000000000001',
+    });
+  });
+
+  it('sends no vocabulary keys at all when neither flag is given', async () => {
+    const client = fakeClient();
+
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      client: client as never,
+    });
+
+    const sent = client.transcribe.mock.calls[0]![0];
+    expect(sent).not.toHaveProperty('customWords');
+    expect(sent).not.toHaveProperty('vocabularyListId');
   });
 });

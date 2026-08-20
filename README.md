@@ -184,6 +184,8 @@ ot transcribe <file>      the whole product
   --diarize               label speakers
   --model auto/best       or auto/cheapest, or a specific model id
   --language es           skip language detection
+  --vocab "Otel,Sanjay"   names and jargon the model would otherwise miss
+  --vocab-list <id>       a vocabulary list saved in the web app
   --out <dir>             write artifacts somewhere else
 ```
 
@@ -199,16 +201,27 @@ import { OpenTranscription } from '@opentranscription/sdk';
 const ot = new OpenTranscription({ apiKey: process.env.OT_API_KEY! });
 
 const job = await ot.transcribe({
-  file: await readFile('interview.mp3'),
-  fileName: 'interview.mp3',
-  model: 'auto/best',
+  file: await readFile('earnings-call.mp3'),
+  fileName: 'earnings-call.mp3',
+
+  // Primary plus backups, tried in order when a provider fails.
+  models: ['assemblyai/best', 'deepgram/nova-3'],
+
+  diarization: true,
+
+  // The words a general model has the weakest prior for, which are usually the
+  // reason you wanted the transcript. Merged with a list saved in the web app
+  // when you pass `vocabularyListId` too.
+  customWords: ['EBITDA', 'Sanjay Bhattacharya', 'Nasdaq', 'Otel'],
 });
 
 const done = await ot.waitForJob(job.id);
 ```
 
-Types are generated from the published OpenAPI document, so a contract change
-shows up as a compile error rather than a surprise at runtime.
+Every request field is checked against types generated from the published
+OpenAPI document. A field the API renames stops compiling, and a field it adds
+that this client does not map fails the build by name — the mapping cannot
+silently fall behind the contract.
 
 ## Contributing
 

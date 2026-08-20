@@ -17,6 +17,10 @@ export type TranscribeOptions = {
   model?: string | undefined;
   language?: string | undefined;
   diarize?: boolean | undefined;
+  /** Comma-separated terms to bias the model toward. */
+  vocab?: string | undefined;
+  /** Id of a vocabulary list saved in the web app. */
+  vocabList?: string | undefined;
   outDir?: string | undefined;
   configDir?: string;
   log?: (line: string) => void;
@@ -28,6 +32,19 @@ type TranscriptPayload = {
   text?: string;
   segments?: Segment[];
 };
+
+/**
+ * `--vocab "Kubernetes, Grafana"` -> `['Kubernetes', 'Grafana']`.
+ *
+ * Empty entries are dropped rather than sent: a trailing comma is a typo, and
+ * the API rejects an empty string in the array, which would fail the whole job
+ * over punctuation.
+ */
+const parseVocab = (raw: string): string[] =>
+  raw
+    .split(',')
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0);
 
 const markdown = (segments: Segment[], text: string): string => {
   const diarized = segments.some((segment) => segment.speaker !== undefined);
@@ -81,6 +98,8 @@ export const transcribe = async (
     ...(options.model ? { model: options.model } : {}),
     ...(options.language ? { language: options.language } : {}),
     ...(options.diarize === undefined ? {} : { diarization: options.diarize }),
+    ...(options.vocab ? { customWords: parseVocab(options.vocab) } : {}),
+    ...(options.vocabList ? { vocabularyListId: options.vocabList } : {}),
   });
 
   const finished = await client.waitForJob(job.id);

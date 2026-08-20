@@ -6,6 +6,8 @@
  * and the polling loop.
  */
 
+import type { components } from './generated/api.js';
+
 // The API is served from the apex, not an `api.` subdomain — this is the
 // `servers` entry in the published OpenAPI document.
 const DEFAULT_BASE_URL = 'https://opentranscription.io';
@@ -34,12 +36,151 @@ export type OpenTranscriptionOptions = {
   sleep?: (ms: number) => Promise<void>;
 };
 
+/**
+ * Accepted by the API but not yet in the published OpenAPI document, so the
+ * generated types cannot vouch for it. `spec-drift` in CI goes red the day the
+ * spec catches up: run `npm run typegen` and delete this.
+ */
+type UndocumentedField = 'audio_retention_days';
+
+/**
+ * Request fields this client deliberately does not surface.
+ *
+ * `file_path` is the server's name for the uploaded object — `transcribe`
+ * supplies it from the upload response and a caller may not invent one.
+ * `duration` is client-declared and can only ever RAISE the credit hold, and an
+ * SDK caller holds bytes rather than a decoded duration, so offering it invites
+ * a wrong guess for no gain. `router` is a nested strategy-and-constraints
+ * object; `model: 'auto/best'` covers the common case and the full router is its
+ * own design.
+ */
+type DeclinedField = 'file_path' | 'duration' | 'router';
+
+type ApiRequest = components['schemas']['CreateTranscriptionRequest'];
+
+/**
+ * SDK option name -> API field name.
+ *
+ * The API is snake_case and this surface is not, and that is the entire
+ * translation. Keeping it as data rather than a chain of ternaries in the
+ * request body means adding a parameter is one line, and means the rule for
+ * what counts as "not given" is written once instead of re-decided per field.
+ */
+const REQUEST_FIELDS = {
+  model: 'model',
+  models: 'models',
+  language: 'language',
+  diarization: 'diarization',
+  customWords: 'custom_words',
+  vocabularyListId: 'vocabulary_list_id',
+  codeSwitching: 'code_switching',
+  codeSwitchingConfidenceThreshold: 'code_switching_confidence_threshold',
+  webhookUrl: 'webhook_url',
+  metadata: 'metadata',
+  title: 'title',
+  useOwnKey: 'use_own_key',
+  audioRetentionDays: 'audio_retention_days',
+  customModelId: 'custom_model_id',
+} as const satisfies Record<
+  keyof Omit<TranscribeInput, 'file' | 'fileName'>,
+  keyof ApiRequest | UndocumentedField
+>;
+
+/**
+ * Fails to compile when the API grows a request field this client neither maps
+ * nor has explicitly declined.
+ *
+ * Without it the generated types were imported by nothing: `custom_words` and
+ * `vocabulary_list_id` sat in `generated/api.ts`, correct, for as long as the
+ * hand-written options type went without them. The error names the missing
+ * field.
+ */
+type Unhandled = Exclude<
+  keyof ApiRequest,
+  (typeof REQUEST_FIELDS)[keyof typeof REQUEST_FIELDS] | DeclinedField
+>;
+/**
+ * A constraint, not a conditional: `T extends never` is checked where the alias
+ * is declared. A bare `[T] extends [never] ? ... : ...` alias compiles happily
+ * whatever T is, because nothing forces it to be evaluated — a guard that
+ * cannot fail is worse than none, since it reads like coverage.
+ */
+type AssertNever<T extends never> = T;
+export type NoUnhandledRequestFields = AssertNever<Unhandled>;
+
 export type TranscribeInput = {
   file: Uint8Array | Blob;
   fileName: string;
+
+  /**
+   * One model id, or a virtual one the router resolves: `auto/best`,
+   * `auto/cheapest`, `auto/fastest`. Exactly one of `model` or `models`.
+   */
   model?: string;
+
+  /**
+   * Primary plus backups, tried in order when one fails. Two to five entries.
+   * Exactly one of `model` or `models`.
+   */
+  models?: string[];
+
+  /** ISO 639-1, two letters. Omit to let the model detect it. */
   language?: string;
+
+  /**
+   * Label speakers. `true` forces it on, `false` forces it off on a model that
+   * would otherwise enable it, omitted follows the model's own default.
+   */
   diarization?: boolean;
+
+  /**
+   * Terms to bias the model toward: product names, jargon, people. This is what
+   * fixes a transcript that is right about the sentence and wrong about the one
+   * word that mattered. Up to 1000 entries, 100 characters each.
+   *
+   * Only models whose `capabilities.features` include `custom_vocabulary` use
+   * it; the rest ignore it rather than failing.
+   */
+  customWords?: string[];
+
+  /**
+   * A vocabulary list saved in the web app, by id. Merged with `customWords`
+   * when both are given. The id comes from Settings -> Vocabulary; there is no
+   * API-key-authenticated route that lists them.
+   */
+  vocabularyListId?: string;
+
+  /** Handle audio that switches language mid-sentence. */
+  codeSwitching?: boolean;
+
+  /** 0 to 1. AssemblyAI only; ignored elsewhere. */
+  codeSwitchingConfidenceThreshold?: number;
+
+  /**
+   * Public HTTPS URL to receive a signed `transcription.completed` event, so a
+   * long job does not need `waitForJob` holding a process open.
+   */
+  webhookUrl?: string;
+
+  /** Returned untouched on the job. Yours to correlate with. */
+  metadata?: Record<string, unknown>;
+
+  /** Display name in the web app. Falls back to the file name. */
+  title?: string;
+
+  /** Bill this job to your own provider key instead of platform credits. */
+  useOwnKey?: boolean;
+
+  /**
+   * Override the organization's audio retention for this job: a whole number of
+   * days, `0` to delete on completion, or `null` to keep it indefinitely.
+   * Omitted leaves the organization default in force — which is why `null`
+   * here is a real value and not the same as leaving it out.
+   */
+  audioRetentionDays?: number | null;
+
+  /** A fine-tuned model you uploaded, by id. */
+  customModelId?: string;
 };
 
 export type Job = {
@@ -221,18 +362,21 @@ export class OpenTranscription {
       throw new ApiError('Upload failed', upload.status);
     }
 
+    // Only `undefined` means "not given". `false` and `null` are values the API
+    // reads: `diarization: false` forces diarization off, and
+    // `audio_retention_days: null` means retain indefinitely — treating either
+    // as absent would quietly apply the opposite policy.
+    const request: Record<string, unknown> = { file_path };
+    for (const [option, field] of Object.entries(REQUEST_FIELDS)) {
+      const value = input[option as keyof typeof REQUEST_FIELDS];
+      if (value !== undefined) request[field] = value;
+    }
+
     // `file_path` comes back from the API and is passed through untouched. It is
     // the server's name for the object, not something a client may construct.
     return this.#api<Job>('/api/v1/transcriptions', {
       method: 'POST',
-      body: JSON.stringify({
-        file_path,
-        ...(input.model ? { model: input.model } : {}),
-        ...(input.language ? { language: input.language } : {}),
-        ...(input.diarization === undefined
-          ? {}
-          : { diarization: input.diarization }),
-      }),
+      body: JSON.stringify(request),
     });
   }
 
@@ -277,7 +421,7 @@ export class OpenTranscription {
 
       if (options.signal?.aborted) throw new Error('Aborted');
 
-      await sleep(interval);
+      await this.#sleep(interval);
     }
   }
 }
