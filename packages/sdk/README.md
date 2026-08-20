@@ -92,8 +92,9 @@ field it adds that this client does not map fails the build by name.
 `fetch` and `sleep`, so callers can test without network or real waiting.
 `baseUrl` defaults to `https://opentranscription.io`.
 
-Rate limits (429) are retried automatically, honouring `Retry-After` and then
-`X-RateLimit-Reset`, up to four waits. A single `transcribe` can trip a
+Rate limits (429) are retried automatically, up to four waits. The API sends
+`X-RateLimit-Reset` (an epoch second) and that is what paces the retry;
+`Retry-After` is honoured first if a response ever carries one. A single `transcribe` can trip a
 ten-per-minute limit on its own, since it is an upload, a create, and then a
 poll every couple of seconds.
 

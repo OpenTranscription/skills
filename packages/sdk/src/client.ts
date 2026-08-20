@@ -257,6 +257,11 @@ const RATE_LIMIT_RETRIES = 4;
 /**
  * `Retry-After` is seconds; `X-RateLimit-Reset` is an epoch second. Fall back to
  * the poll interval when neither is usable rather than hammering immediately.
+ *
+ * Today the API sends only the second of those: `checkRateLimit` sets
+ * `X-RateLimit-{Limit,Remaining,Reset}` and no `Retry-After`. The first branch
+ * is kept because it is the standard header and costs nothing, but it is not
+ * the one that fires.
  */
 const retryAfterMs = (response: Response): number => {
   const retryAfter = Number(response.headers.get('retry-after'));
