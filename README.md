@@ -68,6 +68,52 @@ Requires Node 22 or newer.
 
 ## Why you need it
 
+If your agent can already transcribe audio, it does it with one model you did not
+choose, whose error rate you cannot see, and that you cannot swap when it gets a
+recording wrong.
+
+Transcription is not a solved problem, and the gap between models is wider than
+most people expect. The same recording can come back clean from one and badly
+mangled by another. Names, numbers, and technical terms fail first — usually the
+exact reason you wanted the transcript. And an agent reading a bad transcript
+cannot tell that it is bad, so it reasons confidently over noise and you find out
+much later, from a decision that was never actually made.
+
+Price does not sort this out for you either. The most expensive model in the
+catalogue is not the most accurate one, and the cheapest is not the worst. Both
+directions are guesses until somebody measures.
+
+### What `ot` does about it
+
+```bash
+ot models --language es
+```
+
+Every model, from every provider we support, with its measured word error rate,
+price per minute, latency, and supported languages. The numbers come from the
+live catalogue rather than a table in a README, so they reflect what the models
+do now — model ids get upgraded in place, and a figure written down today is a
+claim about a model that may not exist next month.
+
+Pick one, or state the goal and let it route:
+
+```bash
+ot transcribe interview.wav --model auto/best      # lowest measured error
+ot transcribe interview.wav --model auto/cheapest  # cheapest that still works
+```
+
+Three more things a built-in transcriber generally will not do:
+
+- **Speaker labels.** `--diarize` gives you who said what, which is the
+  difference between a transcript of a meeting and a record of a decision.
+  `ot models` marks which models support it.
+- **Real subtitle files.** `.srt` and `.vtt` written to disk, not pasted into a
+  chat window.
+- **Long recordings.** Sized for hours of audio rather than whatever your agent's
+  upload limit happens to be.
+
+## How it works
+
 Ask your agent to transcribe a meeting and it runs one command:
 
 ```
@@ -87,20 +133,25 @@ Sections:
   00:15:40  I can have the dashboard ready by Thursday.
 ```
 
-The transcript, subtitles, and section index are on disk. The agent spent a
-filename instead of the ~10,400 tokens that transcript would have cost it, and
-it knows where to look next.
+The artifacts go to disk and the agent gets the receipt above, not the
+transcript. That hour of audio would have cost it roughly 10,400 tokens to read,
+and almost none of them would have earned their place: an agent asked to find one
+decision does not need the other fifty-nine minutes in its context to find it.
 
-## How it works
+Short recordings print inline instead, because a receipt for eight seconds of
+audio is worse than the audio.
 
-Transcripts are long, and a model that reads one has spent its context on the
-least useful shape of the work. `ot` always writes the artifacts to disk and
-hands back either the transcript (when it is short) or a receipt: word count,
-duration, model, file paths, and a section index of timestamps built from
-speaker turns and silence gaps.
+The section index is what makes the receipt usable. Those timestamps are computed
+from speaker turns and silence gaps, not summarized by a second model, so they
+cost nothing, return the same thing every time, and give the agent somewhere
+specific to look:
 
-The section index is computed, not summarized. No second model call, so it costs
-nothing and returns the same thing every time.
+```bash
+ot show <job-id> --from 12:30 --to 18:00
+```
+
+That slice is served from the transcript already on disk, so reading a section
+twice costs nothing.
 
 ## What this is
 
