@@ -32,6 +32,16 @@ account with a perfectly valid credential. Fix it with `ot login --org X`.
 
 ## Transcription
 
+**`No such file: <path>` or `<path> is a folder. Pass an audio file.`**
+The CLI checks the path before uploading anything, so nothing was billed.
+Relative paths resolve from the current directory, and the command takes one
+audio file, not a folder of them.
+
+**`Option '--out <value>' argument missing` / `Unknown option '--langauge'`.**
+Every flag that takes a value needs one, and unknown flags are an error rather
+than ignored, so a typo cannot silently drop `--language` or `--out`. The
+command stops before doing anything; exit code 2.
+
 **"Free minutes exhausted" / "Insufficient credits."**
 Billing is per second of audio. Free minutes reset monthly; credits do not
 expire on a schedule. Both are topped up on the web app; the CLI cannot do it.

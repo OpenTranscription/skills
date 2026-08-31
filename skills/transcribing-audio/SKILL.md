@@ -112,6 +112,13 @@ cases:
   re-encode it smaller
 - **video file** → the API takes audio only; extract first with
   `ffmpeg -i in.mp4 -vn -ac 1 -ar 16000 -c:a libmp3lame out.mp3`
+- **`No such file: <path>`** → the path is wrong; relative paths resolve from
+  the current directory
+- **`<path> is a folder. Pass an audio file.`** → the command takes one file;
+  pass the recording inside the folder
+- **`Option '--out <value>' argument missing` or `Unknown option '--langauge'`**
+  → a flag was given without its value, or misspelled; nothing ran, fix the
+  flag and re-run
 
 More detail in [references/troubleshooting.md](references/troubleshooting.md).
 

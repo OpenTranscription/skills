@@ -46,6 +46,30 @@ const parseVocab = (raw: string): string[] =>
     .map((word) => word.trim())
     .filter((word) => word.length > 0);
 
+/**
+ * The two ways a path goes wrong before any money is spent. Node's errno
+ * strings (`ENOENT: no such file or directory, open '...'`) are exact but not
+ * sentences; the bin entry prints `error.message` as-is, so the message IS the
+ * user-facing line. Anything else (EACCES, EMFILE) is rare enough to pass
+ * through unchanged.
+ */
+const readAudio = async (file: string): Promise<Buffer> => {
+  try {
+    return await readFile(file);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') {
+      throw new Error(`No such file: ${file}`, { cause: error });
+    }
+    if (code === 'EISDIR') {
+      throw new Error(`${file} is a folder. Pass an audio file.`, {
+        cause: error,
+      });
+    }
+    throw error;
+  }
+};
+
 const markdown = (segments: Segment[], text: string): string => {
   const diarized = segments.some((segment) => segment.speaker !== undefined);
   if (!diarized) return `${text.trim()}\n`;
@@ -89,7 +113,7 @@ export const transcribe = async (
       baseUrl: apiBaseUrl(),
     });
 
-  const bytes = await readFile(options.file);
+  const bytes = await readAudio(options.file);
   const fileName = basename(options.file);
 
   const job = await client.transcribe({

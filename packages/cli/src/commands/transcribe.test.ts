@@ -222,3 +222,35 @@ describe('ot transcribe — vocabulary', () => {
     expect(sent).not.toHaveProperty('vocabularyListId');
   });
 });
+
+/**
+ * `readFile` used to be unguarded, so a wrong path printed `ENOENT: no such
+ * file or directory, open '...'` and a folder printed `EISDIR: illegal
+ * operation on a directory, read`. Neither is a sentence a person, or an agent
+ * reading the transcript, can act on without knowing errno names.
+ */
+describe('ot transcribe — unreadable input', () => {
+  it('names the missing file instead of printing ENOENT', async () => {
+    const missing = join(dir, 'nope.mp3');
+    const client = fakeClient();
+
+    await expect(
+      transcribe({
+        file: missing,
+        configDir: dir,
+        log,
+        client: client as never,
+      })
+    ).rejects.toThrow(`No such file: ${missing}`);
+    expect(client.transcribe).not.toHaveBeenCalled();
+  });
+
+  it('says a folder is a folder instead of printing EISDIR', async () => {
+    const client = fakeClient();
+
+    await expect(
+      transcribe({ file: dir, configDir: dir, log, client: client as never })
+    ).rejects.toThrow(`${dir} is a folder. Pass an audio file.`);
+    expect(client.transcribe).not.toHaveBeenCalled();
+  });
+});
