@@ -210,7 +210,12 @@ export type WaitOptions = {
   signal?: AbortSignal;
 };
 
-/** A non-2xx response from the API, carrying whatever it told us. */
+/**
+ * A response the API did not accept, carrying whatever it told us. Usually a
+ * non-2xx status; also a 2xx whose body is not JSON, which means the request
+ * reached something other than the API (see `#api`). `status` is the HTTP
+ * status either way.
+ */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
@@ -299,8 +304,9 @@ export class OpenTranscription {
    * and only give up if it keeps saying no.
    */
   async #api<T>(path: string, init?: RequestInit): Promise<T> {
+    const url = `${this.#baseUrl}${path}`;
     for (let attempt = 0; ; attempt += 1) {
-      const response = await this.#fetch(`${this.#baseUrl}${path}`, {
+      const response = await this.#fetch(url, {
         ...init,
         headers: {
           authorization: `Bearer ${this.#apiKey}`,
@@ -309,10 +315,21 @@ export class OpenTranscription {
         },
       });
 
-      const body = (await response.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
+      // A 2xx that is not JSON is not a success: the request landed somewhere
+      // that is not the API. The usual cause is a `baseUrl` with a locale
+      // prefix (`https://opentranscription.io/en`), which answers every path
+      // with a 200 HTML page. Returning `{}` as `T` here made `listModels()`
+      // come back empty with nothing to explain why. A non-JSON *error* body
+      // is still tolerated: the status alone is enough to build the ApiError.
+      const body = (await response.json().catch(() => {
+        if (!response.ok) return {};
+        const contentType =
+          response.headers.get('content-type') ?? 'an unknown content type';
+        throw new ApiError(
+          `Expected a JSON response but got ${contentType} (HTTP ${response.status}) from ${url}; check baseUrl`,
+          response.status
+        );
+      })) as Record<string, unknown>;
 
       if (response.ok) return body as T;
 

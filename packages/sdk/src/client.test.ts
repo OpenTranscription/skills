@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { OpenTranscription } from './client.js';
+import { ApiError, OpenTranscription } from './client.js';
 
 type Call = { url: string; init: RequestInit | undefined };
 
@@ -215,6 +215,64 @@ describe('rate limiting', () => {
     });
 
     await expect(ot.getJob('job-1')).rejects.toMatchObject({ status: 429 });
+  });
+});
+
+describe('non-JSON responses', () => {
+  /**
+   * A `baseUrl` with a locale prefix (`https://opentranscription.io/en`) makes
+   * the server answer every API path with a 200 HTML page. Swallowing the parse
+   * failure returned `{}` typed as the caller's `T`, so `listModels()` came
+   * back empty and `getJob()` had no `status`, with nothing to explain why.
+   */
+  it('rejects a 2xx that is not JSON instead of returning an empty object', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/transcriptions/job-1': () =>
+        new Response('<!doctype html><html><body>home</body></html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+        }),
+    });
+
+    const error = await client(fetch)
+      .getJob('job-1')
+      .then(
+        () => {
+          throw new Error('resolved');
+        },
+        (e: unknown) => e
+      );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 200 });
+    expect((error as ApiError).message).toContain('text/html');
+    expect((error as ApiError).message).toContain('200');
+    expect((error as ApiError).message).toContain(
+      'https://api.test/api/v1/transcriptions/job-1'
+    );
+  });
+
+  it('still turns a non-JSON error body into an ApiError from the status', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/transcriptions/job-1': () =>
+        new Response('<html>Internal Server Error</html>', {
+          status: 500,
+          statusText: 'Internal Server Error',
+          headers: { 'content-type': 'text/html' },
+        }),
+    });
+
+    const error = await client(fetch)
+      .getJob('job-1')
+      .then(
+        () => {
+          throw new Error('resolved');
+        },
+        (e: unknown) => e
+      );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 500, code: undefined });
   });
 });
 

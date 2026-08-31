@@ -100,7 +100,7 @@ poll every couple of seconds.
 
 ## Errors
 
-- `ApiError` is a non-2xx response. It carries `status` and, when the API sent one, `code`.
+- `ApiError` is a non-2xx response. It carries `status` and, when the API sent one, `code`. It is also thrown for a 2xx whose body is not JSON, which means the request reached something other than the API; the usual cause is a `baseUrl` with a locale prefix such as `https://opentranscription.io/en`, which answers every path with an HTML page. The message names the content type, status and URL, and `status` is the HTTP status (200 in that case).
 - `JobFailedError` means the job ran and failed, so retrying the request is pointless. It carries `code` (also on `job.error_code`), which is what tells you whether to re-encode the audio, pick another model, or give up.
 
 ## Getting a key
