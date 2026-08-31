@@ -8,7 +8,12 @@ import httpx
 import pytest
 import respx
 
-from opentranscription import ApiError, JobFailedError, OpenTranscription
+from opentranscription import (
+    ApiError,
+    JobFailedError,
+    OpenTranscription,
+    OpenTranscriptionError,
+)
 
 BASE = "https://opentranscription.io"
 UPLOAD_URL = "https://storage.example.com/signed/abc?token=secret"
@@ -158,6 +163,28 @@ class TestErrors:
 
         assert caught.value.status == 502
         assert caught.value.code is None
+
+    @respx.mock
+    def test_a_2xx_that_is_not_json_is_an_api_error_not_a_decode_error(self) -> None:
+        # #5220: a locale-prefixed base_url serves the website's HTML with a
+        # 200, and `response.json()` leaked a raw JSONDecodeError. It is the
+        # shared request path, so `list_jobs` fails the same way.
+        respx.get("https://opentranscription.io/en/api/v1/models").mock(
+            return_value=httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                text="<!doctype html><html><body>Open Transcription</body></html>",
+            )
+        )
+
+        with pytest.raises(OpenTranscriptionError) as caught:
+            client(base_url="https://opentranscription.io/en").list_models()
+
+        assert isinstance(caught.value, ApiError)
+        assert caught.value.status == 200
+        assert "text/html" in str(caught.value)
+        assert "HTTP 200" in str(caught.value)
+        assert "https://opentranscription.io/en/api/v1/models" in str(caught.value)
 
 
 class TestRateLimiting:

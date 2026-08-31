@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
 
-from opentranscription import NOT_GIVEN
+from opentranscription import NOT_GIVEN, ApiError, OpenTranscriptionError
 from opentranscription._core import (
     IN_FLIGHT,
     TERMINAL,
@@ -13,6 +14,7 @@ from opentranscription._core import (
     is_terminal,
     resolve_file,
     retry_after_seconds,
+    success_body,
 )
 
 
@@ -140,3 +142,48 @@ class TestTerminal:
 
     def test_the_two_sets_do_not_overlap(self) -> None:
         assert not (TERMINAL & IN_FLIGHT)
+
+
+class TestSuccessBody:
+    def test_returns_the_decoded_object(self) -> None:
+        response = httpx.Response(200, json={"data": {"models": []}})
+
+        assert success_body(response) == {"data": {"models": []}}
+
+    def test_a_non_object_body_reads_as_empty(self) -> None:
+        # The clients only ever `.get` on the result, so a bare list or scalar
+        # is treated the way it always was, not as an error.
+        assert success_body(httpx.Response(200, json=[1, 2])) == {}
+
+    def test_a_non_json_body_is_an_api_error_that_names_the_cause(self) -> None:
+        # The #5220 shape: a locale-prefixed base_url serves the website's HTML
+        # with a 200, and `response.json()` used to leak a JSONDecodeError.
+        request = httpx.Request("GET", "https://opentranscription.io/en/api/v1/models")
+        response = httpx.Response(
+            200,
+            headers={"content-type": "text/html; charset=utf-8"},
+            text="<!doctype html><html></html>",
+            request=request,
+        )
+
+        with pytest.raises(ApiError) as caught:
+            success_body(response)
+
+        assert isinstance(caught.value, OpenTranscriptionError)
+        assert caught.value.status == 200
+        assert caught.value.code is None
+        message = str(caught.value)
+        assert "text/html; charset=utf-8" in message
+        assert "HTTP 200" in message
+        assert "https://opentranscription.io/en/api/v1/models" in message
+        assert "base_url" in message
+
+    def test_a_missing_content_type_is_still_a_clear_error(self) -> None:
+        request = httpx.Request("GET", "https://opentranscription.io/api/v1/models")
+        response = httpx.Response(200, content=b"not json", request=request)
+
+        with pytest.raises(ApiError) as caught:
+            success_body(response)
+
+        assert "no content-type" in str(caught.value)
+        assert caught.value.status == 200

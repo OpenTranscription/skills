@@ -14,7 +14,12 @@ import httpx
 import pytest
 import respx
 
-from opentranscription import ApiError, AsyncOpenTranscription, JobFailedError
+from opentranscription import (
+    ApiError,
+    AsyncOpenTranscription,
+    JobFailedError,
+    OpenTranscriptionError,
+)
 
 BASE = "https://opentranscription.io"
 UPLOAD_URL = "https://storage.example.com/signed/abc?token=secret"
@@ -181,6 +186,27 @@ async def test_surfaces_the_api_error_code() -> None:
 
     assert caught.value.status == 401
     assert caught.value.code == "unauthorized"
+
+
+@respx.mock
+async def test_a_2xx_that_is_not_json_is_an_api_error_not_a_decode_error() -> None:
+    """#5220, on the awaited path: same helper, so the same error."""
+    respx.get("https://opentranscription.io/en/api/v1/transcriptions").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"content-type": "text/html; charset=utf-8"},
+            text="<!doctype html><html><body>Open Transcription</body></html>",
+        )
+    )
+
+    async with client(base_url="https://opentranscription.io/en") as ot:
+        with pytest.raises(OpenTranscriptionError) as caught:
+            await ot.list_jobs()
+
+    assert isinstance(caught.value, ApiError)
+    assert caught.value.status == 200
+    assert "text/html" in str(caught.value)
+    assert "HTTP 200" in str(caught.value)
 
 
 @respx.mock

@@ -10,7 +10,12 @@ class OpenTranscriptionError(Exception):
 
 
 class ApiError(OpenTranscriptionError):
-    """A non-2xx response, carrying whatever the API told us.
+    """A request the API did not answer properly, carrying whatever it told us.
+
+    Usually a non-2xx response. Also a 2xx whose body is not JSON, which is
+    what a `base_url` pointing at the website rather than the API gets back;
+    `status` is then the 200 that arrived, and `code` is `None` because no API
+    spoke.
 
     `code` is the machine-readable cause when the API sent one. Branch on it
     rather than on `str(error)`, which is prose and may be translated or

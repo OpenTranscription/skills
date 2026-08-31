@@ -197,6 +197,32 @@ def api_error(response: httpx.Response) -> ApiError:
     )
 
 
+def success_body(response: httpx.Response) -> dict[str, Any]:
+    """The decoded body of a 2xx response, or an `ApiError` saying why there is none.
+
+    A 200 is not proof of JSON. Point `base_url` at a locale-prefixed page
+    (`https://opentranscription.io/en`) and the website answers every route
+    with its HTML, status 200, which `response.json()` would surface as a bare
+    `JSONDecodeError` naming a character offset and nothing else. Raising
+    `ApiError` instead keeps the promise that every failed call is one
+    `except OpenTranscriptionError` away, and the message names what came back
+    and from where, since the fix is almost always the URL.
+
+    Anything that is JSON but not an object reads as `{}`: the clients only
+    ever `.get` on the result, and that is the behaviour they always had.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        content_type = response.headers.get("content-type") or "no content-type"
+        raise ApiError(
+            f"Expected a JSON response but got {content_type} "
+            f"(HTTP {response.status_code}) from {response.url}; check base_url",
+            response.status_code,
+        ) from None
+    return body if isinstance(body, dict) else {}
+
+
 def normalize_base_url(base_url: str | None) -> str:
     return (base_url or DEFAULT_BASE_URL).rstrip("/")
 

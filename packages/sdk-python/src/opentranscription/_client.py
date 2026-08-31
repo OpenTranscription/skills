@@ -24,6 +24,7 @@ from ._core import (
     normalize_base_url,
     resolve_file,
     retry_after_seconds,
+    success_body,
 )
 from ._errors import ApiError
 
@@ -105,8 +106,7 @@ class OpenTranscription:
             )
 
             if response.is_success:
-                body = response.json()
-                return body if isinstance(body, dict) else {}
+                return success_body(response)
 
             if response.status_code == 429 and attempt < RATE_LIMIT_RETRIES:
                 self._sleep(
