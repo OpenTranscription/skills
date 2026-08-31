@@ -56,14 +56,28 @@ const options = {
   version: { type: 'boolean', short: 'v' },
 } as const;
 
-export const main = async (argv: string[]): Promise<number> => {
-  const { values, positionals } = parseArgs({
-    args: argv,
-    options,
-    allowPositionals: true,
-    strict: false,
-  });
+/**
+ * Strict on purpose. Non-strict `parseArgs` ignores `type: 'string'` and hands
+ * back `true` for a valueless flag, so `--out` with nothing after it ran (and
+ * billed) the transcription before failing on `join(true, ...)`, and a typo
+ * like `--langauge es` was silently dropped. Node's own message names the flag.
+ */
+const parse = (argv: string[]) =>
+  parseArgs({ args: argv, options, allowPositionals: true, strict: true });
 
+export const main = async (argv: string[]): Promise<number> => {
+  let parsed: ReturnType<typeof parse>;
+  try {
+    parsed = parse(argv);
+  } catch (error) {
+    console.error(
+      `${error instanceof Error ? error.message : String(error)}\n`
+    );
+    console.error(HELP);
+    return 2;
+  }
+
+  const { values, positionals } = parsed;
   const [command, target] = positionals;
 
   if (values.version) {
@@ -78,11 +92,11 @@ export const main = async (argv: string[]): Promise<number> => {
 
   switch (command) {
     case 'login':
-      return login({ orgId: values.org as string | undefined });
+      return login({ orgId: values.org });
 
     case 'logout':
       return logout({
-        orgId: values.org as string | undefined,
+        orgId: values.org,
         all: values.all === true,
       });
 
@@ -94,13 +108,13 @@ export const main = async (argv: string[]): Promise<number> => {
 
     case 'models':
       return models({
-        orgId: values.org as string | undefined,
-        language: values.language as string | undefined,
+        orgId: values.org,
+        language: values.language,
       });
 
     case 'jobs':
       return jobs({
-        orgId: values.org as string | undefined,
+        orgId: values.org,
         ...(values.limit === undefined ? {} : { limit: Number(values.limit) }),
       });
 
@@ -111,9 +125,9 @@ export const main = async (argv: string[]): Promise<number> => {
       }
       return show({
         jobId: target,
-        from: values.from as string | undefined,
-        to: values.to as string | undefined,
-        orgId: values.org as string | undefined,
+        from: values.from,
+        to: values.to,
+        orgId: values.org,
       });
     }
 
@@ -124,13 +138,13 @@ export const main = async (argv: string[]): Promise<number> => {
       }
       return transcribe({
         file: target,
-        orgId: values.org as string | undefined,
-        model: values.model as string | undefined,
-        language: values.language as string | undefined,
-        vocab: values.vocab as string | undefined,
-        vocabList: values['vocab-list'] as string | undefined,
-        outDir: values.out as string | undefined,
-        diarize: values.diarize as boolean | undefined,
+        orgId: values.org,
+        model: values.model,
+        language: values.language,
+        vocab: values.vocab,
+        vocabList: values['vocab-list'],
+        outDir: values.out,
+        diarize: values.diarize,
       });
     }
 
