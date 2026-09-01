@@ -57,6 +57,42 @@ before it wrote a lockfile `npm ci` would accept (the first pass dropped
 `conventional-commits-filter`). If CI fails on a missing package that is plainly
 present, run `npm install` again and commit the lockfile.
 
+### Dependency updates
+
+`.github/dependabot.yml` covers three ecosystems: the npm workspace, the GitHub
+Actions in both workflows, and `packages/sdk-python`. Minor and patch bumps are
+grouped into one PR a week per ecosystem, so majors arrive on their own and get
+read rather than rubber-stamped.
+
+Every ecosystem there sets a `commit-message.prefix`, because Dependabot's
+default subject (`Bump x from a to b`) fails the `commitlint` job outright. A
+fourth ecosystem would need one too. The prefixes are `chore` and `ci`, both of
+which `.releaserc.json` maps to no release, which is right while nothing here
+ships a third-party runtime dependency.
+
+Note that the file does not govern security updates. Those are a repository
+setting, under Settings > Advanced Security, and they fire on their own schedule.
+
+Both workflows pin every action to a commit SHA with the version in a trailing
+comment. Dependabot reads that comment and moves the SHA and the comment
+together, so pinning costs nothing to maintain. Do not replace one with a
+floating tag: `release.yml` holds `id-token: write` for both npm and PyPI, and a
+moved tag is the cheapest way into it.
+
+After any dependency change, run `rm -rf node_modules && npm ci` before pushing.
+`npm install` auto-overrides a conflicting peer and merely warns; `npm ci` treats
+the same tree as unresolvable and fails. A local install proves nothing about CI.
+
+One advisory class to know: `npm audit` findings under
+`node_modules/npm/node_modules/*` sit inside the npm CLI that
+`@semantic-release/npm` bundles. They are dev-only, and `npm audit fix` cannot
+reach a bundled dependency. The lever is the `npm` version itself, which is an
+ordinary dependency of that plugin, so `npm update npm` moves it. Check what a
+candidate actually bundles rather than trusting the version number. On
+2026-09-01, npm 11.19.1 shipped patched `tar`, `undici`, `brace-expansion` and
+`ip-address`, while npm 12.0.2, the `latest` tag, still bundled the vulnerable
+ones.
+
 ## Releasing
 
 Merging to `main` releases. [semantic-release](https://semantic-release.gitbook.io)
