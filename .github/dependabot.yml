@@ -1,0 +1,75 @@
+version: 2
+
+# Every commit Dependabot writes lands on main through a PR, so it passes the
+# same two gates a hand-written one does: the `commitlint` job in ci.yml, and
+# semantic-release's commit-analyzer. Both key off the conventional type, which
+# is why every ecosystem below sets an explicit `commit-message.prefix` — the
+# default ("Bump x from a to b") fails commitlint outright.
+#
+# `chore` maps to `release: false` in .releaserc.json, so a merged bump cuts no
+# version. That is correct today: nothing here ships a third-party runtime
+# dependency. The CLI's only dependency is the SDK at an exact version that
+# scripts/set-version.mjs rewrites on every release, and the Python client's
+# httpx floor is a range, not a pin. If a real runtime dependency is ever added,
+# revisit this — a security bump that ships no release is a fix nobody receives.
+#
+# Note that none of this governs SECURITY updates. Those are a repository
+# setting (Settings > Advanced Security > Dependabot security updates), not a
+# file, and they fire regardless of the schedules below.
+updates:
+  # The npm workspace. `directory: /` covers packages/*/package.json too, via
+  # the workspaces field in the root manifest.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      # One PR a week for the routine noise. Majors stay separate so they get
+      # read rather than rubber-stamped.
+      npm-minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # The CLI pins the SDK at an exact version that set-version.mjs rewrites
+      # during release. A Dependabot PR against that pin would be reverted by
+      # the next release commit.
+      - dependency-name: '@opentranscription/*'
+      # TypeScript 7 makes `eslint .` fail hard: typescript-eslint declares
+      # peer typescript ">=4.8.4 <6.1.0" and throws rather than degrading.
+      # See typescript-eslint#10940. Drop this once that peer range moves.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  # Both workflows pin actions to commit SHAs. Dependabot reads the `# vX.Y.Z`
+  # comment beside each one and keeps both the SHA and the comment current, so
+  # pinning costs nothing in maintenance.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  # The Python client. Its dependencies are declared as ranges in pyproject.toml
+  # with no lockfile, so this only fires when a range itself needs to move.
+  - package-ecosystem: pip
+    directory: /packages/sdk-python
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      python:
+        patterns: ['*']
+        update-types: [minor, patch]
