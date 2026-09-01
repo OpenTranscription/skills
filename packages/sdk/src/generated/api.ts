@@ -816,7 +816,7 @@ export interface components {
              * @description Total audio minutes processed.
              */
             total_minutes: number;
-            /** @description Total credits consumed by this model. */
+            /** @description Total credits consumed by this model. Fractional: credits are stored as numeric(16,6). */
             total_credits: number;
         };
         /** @description Usage for a single time bucket. */
@@ -840,7 +840,7 @@ export interface components {
              * @description Total audio minutes processed (rounded to 2 decimal places).
              */
             total_minutes: number;
-            /** @description Total platform credits consumed (sum of job charges and platform fees). */
+            /** @description Total credits spent in the period. Always equals the sum of `by_model[].total_credits` (and of `by_period[].total_credits`): each job counts its ledger charge (job charge or BYOK platform fee) when one exists; a BYOK job with no charge (inside the free tier) counts 0; any other job without a charge (trial) counts its `credits_used`. */
             total_credits_spent: number;
             /**
              * @description The period this report covers.
