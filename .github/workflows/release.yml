@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # semantic-release reads the whole history to find the last release.
           fetch-depth: 0
@@ -32,7 +32,7 @@ jobs:
           # would otherwise shadow the one it is configured with.
           persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -50,7 +50,7 @@ jobs:
       # The Python client releases on the same version as the npm ones, from the
       # same commit. semantic-release builds its distributions during publish,
       # after it has stamped pyproject.toml.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
 
@@ -96,7 +96,7 @@ jobs:
         if: >-
           steps.dists.outputs.built == 'true'
           && vars.PYPI_PUBLISH_ENABLED == 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: packages/sdk-python/dist
           # semantic-release tags on success, so a failure HERE leaves a tagged,
