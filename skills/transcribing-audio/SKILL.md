@@ -53,7 +53,9 @@ Useful flags:
 | `--vocab <words>`       | the audio contains names or jargon (see below)        |
 | `--out <dir>`           | write artifacts somewhere other than beside the audio |
 
-Run `ot models` to see what is available with prices and measured accuracy.
+Run `ot models` to see what is available with prices and measured accuracy. A
+row marked `deprecated → <successor>` still works when named, but `auto/*` will
+not choose it; prefer the successor for new work.
 
 ## Custom vocabulary
 
@@ -129,6 +131,9 @@ More detail in [references/troubleshooting.md](references/troubleshooting.md).
 - Do not transcribe the same file twice to "check" a result; it costs money and
   returns the same thing.
 - Do not pass `--model` a name you have not seen in `ot models`.
+- Do not treat a transcript as good when `ot show` opened with a `Warning:`
+  line. The platform flagged the result (empty, sparse, or the wrong language);
+  tell the user what it said.
 - Do not re-run with `--vocab` after seeing a misspelling in the output when you
   could have supplied the term the first time. Read the context for names before
   the first run, not after.

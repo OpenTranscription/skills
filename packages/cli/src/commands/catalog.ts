@@ -73,6 +73,17 @@ const accuracy = (model: CatalogModel): string => {
     : `  ${(100 - wer * 100).toFixed(1)}% acc`;
 };
 
+const isDeprecated = (model: CatalogModel): boolean =>
+  model.lifecycle === 'deprecated';
+
+/** The only place the CLI names a successor, so it goes on the row itself. */
+const deprecation = (model: CatalogModel): string => {
+  if (!isDeprecated(model)) return '';
+  return model.successor_model_id
+    ? `  deprecated → ${model.successor_model_id}`
+    : '  deprecated';
+};
+
 /**
  * `ot models` — what the agent is allowed to pass to `--model`.
  *
@@ -110,10 +121,18 @@ export const models = async (
   log('auto/fastest     pick the fastest model that fits');
   log('');
 
-  for (const model of catalog) {
+  // Deprecated models stay listed — they are still served when named, and this
+  // list is the agent's whitelist — but sink to the bottom so the top, where a
+  // pick is made, is all active. `sort` is stable, so the API's order survives
+  // within each group.
+  const ordered = [...catalog].sort(
+    (a, b) => Number(isDeprecated(a)) - Number(isDeprecated(b))
+  );
+
+  for (const model of ordered) {
     const name = model.display_name ?? model.name ?? model.id;
     log(
-      `${model.id.padEnd(34)} ${perMinute(model).padStart(13)}${accuracy(model).padEnd(14)}  ${name}`
+      `${model.id.padEnd(34)} ${perMinute(model).padStart(13)}${accuracy(model).padEnd(14)}  ${name}${deprecation(model)}`
     );
   }
 

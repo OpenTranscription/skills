@@ -1,6 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { ApiError, OpenTranscription } from './client.js';
+import {
+  ApiError,
+  type CatalogModel,
+  type Job,
+  OpenTranscription,
+  type QualityWarning,
+} from './client.js';
+
+/**
+ * Checked by `tsc -p tsconfig.tests.json`, not at runtime. The published spec
+ * grew these fields on 2026-09-04; a hand-written type that leaves them under
+ * the index signature hands every consumer `unknown` and hides the contract.
+ */
+describe('catalog and job types follow the published spec', () => {
+  it('types the model lifecycle and its successor', () => {
+    expectTypeOf<CatalogModel['lifecycle']>().toEqualTypeOf<
+      'active' | 'deprecated' | undefined
+    >();
+    expectTypeOf<CatalogModel['successor_model_id']>().toEqualTypeOf<
+      string | null | undefined
+    >();
+  });
+
+  it('types the reserved quality_warning metadata key', () => {
+    expectTypeOf<QualityWarning['tier']>().toEqualTypeOf<
+      'empty' | 'sparse' | 'language_mismatch'
+    >();
+    expectTypeOf<QualityWarning['billable']>().toEqualTypeOf<boolean>();
+    expectTypeOf<
+      NonNullable<Job['metadata']>['quality_warning']
+    >().toEqualTypeOf<QualityWarning | undefined>();
+  });
+});
 
 type Call = { url: string; init: RequestInit | undefined };
 

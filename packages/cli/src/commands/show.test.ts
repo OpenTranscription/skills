@@ -81,6 +81,67 @@ describe('ot show', () => {
   });
 
   /**
+   * The platform's plausibility gate writes `metadata.quality_warning` when a
+   * result looks wrong. "No transcript" on a completed job is exactly the case
+   * it explains, and an agent that only sees the bare message will retry or
+   * blame the file.
+   */
+  it('explains an empty result from the quality warning instead of a bare "no transcript"', async () => {
+    const code = await show({
+      jobId: 'job-1',
+      configDir: dir,
+      log,
+      client: client({
+        transcript: { text: '', segments: [] },
+        metadata: {
+          quality_warning: {
+            tier: 'empty',
+            billable: false,
+            reasonCode: 'empty_transcript',
+          },
+        },
+      }) as never,
+    });
+
+    expect(code).toBe(1);
+    const output = lines.join('\n');
+    expect(output).toContain('empty_transcript');
+    expect(output).toContain('not charged');
+  });
+
+  it('prints a warning line before a flagged transcript, and nothing when unflagged', async () => {
+    await show({
+      jobId: 'job-1',
+      configDir: dir,
+      log,
+      client: client({
+        metadata: {
+          quality_warning: {
+            tier: 'language_mismatch',
+            billable: true,
+            reasonCode: 'language_not_supported',
+            detectedLanguage: 'pt',
+          },
+        },
+      }) as never,
+    });
+
+    expect(lines[0]).toMatch(/^Warning:/);
+    expect(lines[0]).toContain('language_mismatch');
+    expect(lines[0]).toContain('pt');
+    expect(lines.join('\n')).toContain('Opening remarks.');
+
+    lines = [];
+    await show({
+      jobId: 'job-1',
+      configDir: dir,
+      log,
+      client: client() as never,
+    });
+    expect(lines.join('\n')).not.toMatch(/Warning:/);
+  });
+
+  /**
    * A segment straddling the boundary is what the caller pointed at. Requiring
    * full containment silently drops the sentence they asked to read.
    */

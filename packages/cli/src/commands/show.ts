@@ -1,4 +1,4 @@
-import { OpenTranscription } from '@opentranscription/sdk';
+import { OpenTranscription, type QualityWarning } from '@opentranscription/sdk';
 
 import {
   defaultConfigDir,
@@ -33,6 +33,27 @@ export const parseTimecode = (value: string): number => {
 };
 
 /**
+ * One line the agent can act on: which check fired, why, and whether the job
+ * cost anything — the platform refunds `empty` and `sparse` results.
+ */
+const describeWarning = (warning: QualityWarning): string => {
+  const detail = [
+    warning.reasonCode,
+    warning.detectedLanguage
+      ? `detected ${warning.detectedLanguage}`
+      : undefined,
+    warning.wordsPerMinute === null || warning.wordsPerMinute === undefined
+      ? undefined
+      : `${warning.wordsPerMinute} words/min`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const charge = warning.billable ? 'charged normally' : 'not charged';
+
+  return `Warning: the quality gate flagged this result as ${warning.tier} (${detail}); ${charge}.`;
+};
+
+/**
  * `ot show <job> [--from] [--to]` — read part of a transcript.
  *
  * The slicing happens HERE, not on the server: there is no range endpoint, and
@@ -61,6 +82,11 @@ export const show = async (options: ShowOptions): Promise<number> => {
     segments?: Segment[];
   };
   const segments = transcript.segments ?? [];
+
+  // Goes first, before any transcript text: an agent that reads only the top of
+  // the output must not take a flagged result at face value.
+  const warning = job.metadata?.quality_warning;
+  if (warning) log(describeWarning(warning));
 
   if (segments.length === 0) {
     if (transcript.text) {

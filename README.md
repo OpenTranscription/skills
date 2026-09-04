@@ -160,7 +160,9 @@ ot show <job-id> --from 12:30 --to 18:00
 
 The slicing happens in the CLI, not on the server: `ot show` fetches the job and
 prints only the range you asked for. The bytes land in this process instead of in
-the agent's context, and re-reading a section never re-transcribes anything.
+the agent's context, and re-reading a section never re-transcribes anything. A result the
+platform's quality gate flagged (empty, sparse, wrong language) opens with a
+`Warning:` line that says why and whether it was charged.
 
 ## What this is
 

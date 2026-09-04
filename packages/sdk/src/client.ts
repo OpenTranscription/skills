@@ -176,12 +176,31 @@ export type TranscribeInput = {
   customModelId?: string;
 };
 
+/**
+ * Written by the platform under the reserved `metadata.quality_warning` key when
+ * the transcript's plausibility gate flagged the result. The job still
+ * completes; `empty` and `sparse` are not charged, `language_mismatch` is.
+ */
+export type QualityWarning = {
+  tier: 'empty' | 'sparse' | 'language_mismatch';
+  billable: boolean;
+  reasonCode?: string | null;
+  wordsPerMinute?: number | null;
+  detectedLanguage?: string | null;
+  confidence?: number | null;
+};
+
 export type Job = {
   id: string;
   status: string;
   error?: string;
   /** Machine-readable failure cause. Absent on APIs older than 2026-08-18. */
   error_code?: string;
+  /** Caller-supplied at creation, plus `quality_warning` when the gate fired. */
+  metadata?: {
+    quality_warning?: QualityWarning;
+    [key: string]: unknown;
+  } | null;
   [key: string]: unknown;
 };
 
@@ -192,7 +211,15 @@ export type CatalogModel = {
   display_name?: string;
   description?: string;
   mode?: string;
+  /** `true` for both `active` and `deprecated`; only a retired model is `false`. */
   is_active?: boolean;
+  /**
+   * `deprecated` is still served when named explicitly, but a new `auto/*`
+   * resolution will not pick it. Absent on APIs older than 2026-09-04.
+   */
+  lifecycle?: 'active' | 'deprecated';
+  /** Recommended replacement for a deprecated model; `null` when none is recorded. */
+  successor_model_id?: string | null;
   provider?: { id: string; name: string };
   pricing?: { cost_per_second: number; currency: string };
   performance?: { avg_wer?: number | null; avg_speed_factor?: number | null };

@@ -84,9 +84,9 @@ field it adds that this client does not map fails the build by name.
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `transcribe(input)`        | Upload and create a job. Returns immediately, before transcription finishes.                                                                                           |
 | `waitForJob(id, options?)` | Poll until the job completes. Throws `JobFailedError` if it fails. `options` takes `pollIntervalMs` (default 2000) and an `AbortSignal`. There is no built-in timeout. |
-| `getJob(id)`               | Read one job, including its transcript once ready.                                                                                                                     |
+| `getJob(id)`               | Read one job, including its transcript once ready. `metadata.quality_warning` (a `QualityWarning`) is set when the platform's quality gate flagged the result.         |
 | `listJobs(limit?)`         | Recent jobs, newest first.                                                                                                                                             |
-| `listModels()`             | The public model catalogue: pricing, accuracy, supported languages. No key required.                                                                                   |
+| `listModels()`             | The public model catalogue: pricing, accuracy, supported languages, `lifecycle` (`active`/`deprecated`) and `successor_model_id`. No key required.                     |
 
 `new OpenTranscription({ apiKey, baseUrl?, fetch?, sleep? })` takes an injectable
 `fetch` and `sleep`, so callers can test without network or real waiting.

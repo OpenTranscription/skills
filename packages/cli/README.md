@@ -66,6 +66,11 @@ The slicing happens in the CLI: `ot show` fetches the job and prints only the
 range you asked for. The bytes land in this process instead of in your agent's
 context, and re-reading a section never re-transcribes anything.
 
+When the platform's quality gate flagged a result as empty, sparse, or in a
+language the model does not support, `ot show` prints a `Warning:` line first
+with the reason and whether the job was charged. Empty and sparse results are
+not.
+
 ## Choosing a model
 
 ```bash
@@ -74,7 +79,9 @@ ot transcribe interview.wav --model auto/cheapest --diarize
 ```
 
 `auto/best`, `auto/cheapest` and `auto/fastest` route for you. `ot models` lists
-everything else with per-minute pricing and measured accuracy.
+everything else with per-minute pricing and measured accuracy. A model marked
+`deprecated → <successor>` sits at the bottom of the list: it still works when
+named, but the `auto/*` strategies no longer pick it, so move to the successor.
 
 ## Signing in
 

@@ -124,6 +124,67 @@ describe('ot models', () => {
     expect(code).toBe(1);
     expect(lines.join('\n')).toMatch(/No models support/);
   });
+
+  /**
+   * A deprecated model is still servable when named, so it stays in the list —
+   * the skill says "never pass a model you have not seen here", and hiding a
+   * working id would turn that rule into a false rejection. It goes LAST so the
+   * top of the list, where an agent picks from, is all active; and it names its
+   * successor, since nothing else in the CLI does.
+   */
+  it('lists a deprecated model last, marked with its successor', async () => {
+    const withDeprecated = [
+      {
+        id: 'deepgram/nova-2',
+        display_name: 'Nova 2',
+        lifecycle: 'deprecated',
+        successor_model_id: 'deepgram/nova-3',
+        pricing: { cost_per_second: 0.007, currency: 'credits' },
+        performance: { avg_wer: 0.12 },
+        capabilities: { supported_languages: ['en'] },
+      },
+      ...catalog.map((model) => ({
+        ...model,
+        lifecycle: 'active',
+        successor_model_id: null,
+      })),
+    ];
+
+    await models({
+      configDir: dir,
+      log,
+      client: client({
+        listModels: vi.fn(async () => withDeprecated),
+      }) as never,
+    });
+
+    const rows = lines.filter((l) => l.includes('/') && !l.startsWith('auto/'));
+    expect(rows.at(-1)).toContain('deepgram/nova-2');
+    expect(rows.at(-1)).toContain('deprecated → deepgram/nova-3');
+    expect(rows.find((l) => l.includes('deepgram/nova-3'))).not.toContain(
+      'deprecated'
+    );
+  });
+
+  it('marks a deprecated model with no recorded successor as just deprecated', async () => {
+    await models({
+      configDir: dir,
+      log,
+      client: client({
+        listModels: vi.fn(async () => [
+          {
+            ...catalog[0],
+            lifecycle: 'deprecated',
+            successor_model_id: null,
+          },
+        ]),
+      }) as never,
+    });
+
+    const row = lines.find((l) => l.includes('openai/whisper-large-v3'));
+    expect(row).toContain('deprecated');
+    expect(row).not.toContain('→');
+  });
 });
 
 describe('ot jobs', () => {
