@@ -539,7 +539,7 @@ export interface components {
              */
             webhook_url?: string;
             /**
-             * @description Arbitrary key-value metadata stored with the job. Values can be any JSON type.
+             * @description Arbitrary key-value metadata stored with the job. Values can be any JSON type. `quality_warning` is a reserved key — the platform writes it (see `TranscriptionJobDetail.metadata` below) and a request supplying it is rejected with a 400.
              * @example {
              *       "customer_id": "cust_12345",
              *       "source": "mobile-app"
@@ -781,7 +781,22 @@ export interface components {
             error_code?: string | null;
             /** Format: uri */
             webhook_url?: string | null;
-            /** @description Metadata as set during job creation. */
+            /**
+             * @description Free-form job metadata. May include a `quality_warning` object (see below) when the transcript's plausibility gate flagged this result; absent otherwise. New keys may be added over time — consumers should ignore keys they don't recognize.
+             *
+             *     **`quality_warning`** (present only when the result was flagged; the job still completes normally otherwise):
+             *
+             *     | Field | Type | Meaning |
+             *     |-------|------|--------|
+             *     | `tier` | `"empty" \| "sparse" \| "language_mismatch"` | Which check flagged the result |
+             *     | `billable` | `boolean` | `false` for `empty`/`sparse` (not charged, reservation released); `true` for `language_mismatch` (charged normally — the signal is weaker, so it warns without refusing the charge) |
+             *     | `reasonCode` | `string \| null` | One of `empty_transcript`, `low_word_density`, `language_undetermined`, `language_not_supported`, `low_confidence` |
+             *     | `wordsPerMinute` | `number \| null` | Set for the `sparse` tier |
+             *     | `detectedLanguage` | `string \| null` | Set for the `language_mismatch` tier (BCP-47 primary subtag, or `und`) |
+             *     | `confidence` | `number \| null` | Overall transcript confidence, when the `language_mismatch` tier used it as a signal |
+             *
+             *     See `docs/architecture/transcript-quality-gates.md` for the thresholds.
+             */
             metadata?: {
                 [key: string]: unknown;
             } | null;
@@ -930,8 +945,15 @@ export interface components {
             pricing: components["schemas"]["ModelPricing"];
             performance: components["schemas"]["ModelPerformance"];
             capabilities: components["schemas"]["ModelCapabilities"];
-            /** @description Whether the model is currently available. */
+            /** @description Whether the model is servable at all. `true` for BOTH `lifecycle: active` and `lifecycle: deprecated` — only `retired` reads `false`. */
             is_active: boolean;
+            /**
+             * @description `active` = offered for new selections. `deprecated` = fully servable when named explicitly (this `model` id, or a `models[]` chain entry), but excluded from a NEW `auto/*` or `router`-config resolution. A `retired` model never appears in this catalog (it fails `is_active` before reaching this list).
+             * @enum {string}
+             */
+            lifecycle: "active" | "deprecated";
+            /** @description Recommended replacement when `lifecycle` is `deprecated`. `null` when no successor is recorded, or when the model is `active`. */
+            successor_model_id: string | null;
             /**
              * @description `batch` = file upload only; `realtime` = streaming only; `both` = supports either.
              * @enum {string}
@@ -1900,6 +1922,8 @@ export interface operations {
                      *               ]
                      *             },
                      *             "is_active": true,
+                     *             "lifecycle": "active",
+                     *             "successor_model_id": null,
                      *             "mode": "batch"
                      *           },
                      *           {
@@ -1941,6 +1965,8 @@ export interface operations {
                      *               ]
                      *             },
                      *             "is_active": true,
+                     *             "lifecycle": "active",
+                     *             "successor_model_id": null,
                      *             "mode": "both"
                      *           }
                      *         ],
