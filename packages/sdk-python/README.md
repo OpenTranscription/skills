@@ -95,13 +95,13 @@ name, and so does one this client offers that the API no longer accepts.
 
 ## API
 
-| Method                                | Purpose                                                                                                               |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `transcribe(file, **fields)`          | Upload and create a job. Returns immediately, before transcription finishes.                                          |
-| `wait_for_job(job_id, poll_interval)` | Poll until the job completes. Raises `JobFailedError` if it fails. `poll_interval` is seconds, default 2. No timeout. |
-| `get_job(job_id)`                     | Read one job, including its transcript once ready.                                                                    |
-| `list_jobs(limit)`                    | Recent jobs, newest first.                                                                                            |
-| `list_models()`                       | The public model catalogue: pricing, accuracy, supported languages.                                                   |
+| Method                                | Purpose                                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transcribe(file, **fields)`          | Upload and create a job. Returns immediately, before transcription finishes.                                                                        |
+| `wait_for_job(job_id, poll_interval)` | Poll until the job completes. Raises `JobFailedError` if it fails. `poll_interval` is seconds, default 2. No timeout.                               |
+| `get_job(job_id)`                     | Read one job, including its transcript once ready. `job["metadata"]["quality_warning"]` is set when the platform's quality gate flagged the result. |
+| `list_jobs(limit)`                    | Recent jobs, newest first.                                                                                                                          |
+| `list_models()`                       | The public model catalogue: pricing, accuracy, supported languages, `lifecycle` (`active`/`deprecated`) and `successor_model_id`.                   |
 
 `OpenTranscription(api_key, base_url=..., timeout=..., http_client=..., sleep=...)`
 accepts your own `httpx.Client` when you need custom transport, proxies, or
