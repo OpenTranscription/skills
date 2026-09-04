@@ -12,11 +12,35 @@
  * make every transcription slow, non-reproducible, and billed twice.
  */
 
+import { type QualityWarning } from '@opentranscription/sdk';
+
 export type Segment = {
   start: number;
   end: number;
   text: string;
   speaker?: string;
+};
+
+/**
+ * One line the agent can act on: which check fired, why, and whether the job
+ * cost anything — the platform refunds `empty` and `sparse` results. Shared by
+ * `ot transcribe` and `ot show` so the verdict reads the same from either.
+ */
+export const describeWarning = (warning: QualityWarning): string => {
+  const detail = [
+    warning.reasonCode,
+    warning.detectedLanguage
+      ? `detected ${warning.detectedLanguage}`
+      : undefined,
+    warning.wordsPerMinute === null || warning.wordsPerMinute === undefined
+      ? undefined
+      : `${warning.wordsPerMinute} words/min`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const charge = warning.billable ? 'charged normally' : 'not charged';
+
+  return `Warning: the quality gate flagged this result as ${warning.tier} (${detail}); ${charge}.`;
 };
 
 export type Section = { start: number; label: string };

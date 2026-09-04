@@ -130,6 +130,59 @@ describe('ot transcribe', () => {
     expect(output).toContain('interview.transcript.md');
   });
 
+  /**
+   * The gate's verdict has to come from THIS command, not only from `ot show`:
+   * an agent that transcribes and reads the inline text never runs `ot show`,
+   * and would hand a flagged transcript on as if it were fine.
+   */
+  it('opens with the quality warning before an inline transcript', async () => {
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      client: fakeClient({
+        metadata: {
+          quality_warning: {
+            tier: 'sparse',
+            billable: false,
+            reasonCode: 'low_word_density',
+            wordsPerMinute: 3,
+          },
+        },
+      }) as never,
+    });
+
+    expect(lines[0]).toMatch(/^Warning:/);
+    expect(lines[0]).toContain('sparse');
+    expect(lines[0]).toContain('3 words/min');
+    expect(lines.join('\n')).toContain('Welcome to the show.');
+  });
+
+  it('still writes the artifacts and explains an empty flagged result', async () => {
+    const code = await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      client: fakeClient({
+        transcript: { text: '', segments: [] },
+        metadata: {
+          quality_warning: {
+            tier: 'empty',
+            billable: false,
+            reasonCode: 'empty_transcript',
+          },
+        },
+      }) as never,
+    });
+
+    expect(code).toBe(0);
+    expect(lines[0]).toContain('empty_transcript');
+    expect(lines[0]).toContain('not charged');
+    await expect(
+      readFile(join(dir, 'interview.transcript.md'), 'utf8')
+    ).resolves.toBeDefined();
+  });
+
   it('refuses before uploading when the named org has no key', async () => {
     await expect(
       transcribe({

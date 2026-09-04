@@ -9,7 +9,13 @@ import {
   resolveCredential,
 } from '../credentials.js';
 import { apiBaseUrl } from '../env.js';
-import { formatSrt, formatVtt, type Segment, summarize } from '../output.js';
+import {
+  describeWarning,
+  formatSrt,
+  formatVtt,
+  type Segment,
+  summarize,
+} from '../output.js';
 
 export type TranscribeOptions = {
   file: string;
@@ -166,6 +172,11 @@ export const transcribe = async (
     durationSeconds,
     model: String(finished.model_id ?? options.model ?? 'auto'),
   });
+
+  // Before the transcript or receipt, never after: an inline transcript is
+  // read top-down and a flagged one must not be taken at face value.
+  const warning = finished.metadata?.quality_warning;
+  if (warning) log(describeWarning(warning));
 
   log(summary.body);
 

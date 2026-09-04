@@ -147,7 +147,9 @@ asked to find one decision does not need the other fifty-nine minutes in its
 context to find it.
 
 Short recordings print inline instead, because a receipt for eight seconds of
-audio is worse than the audio.
+audio is worse than the audio. Either way, a result the platform's quality gate
+flagged (empty, sparse, wrong language) opens with a `Warning:` line that says
+why and whether it was charged.
 
 The section index is what makes the receipt usable. No second model reads the
 transcript to produce it: the timestamps come from speaker turns and silence
@@ -160,9 +162,8 @@ ot show <job-id> --from 12:30 --to 18:00
 
 The slicing happens in the CLI, not on the server: `ot show` fetches the job and
 prints only the range you asked for. The bytes land in this process instead of in
-the agent's context, and re-reading a section never re-transcribes anything. A result the
-platform's quality gate flagged (empty, sparse, wrong language) opens with a
-`Warning:` line that says why and whether it was charged.
+the agent's context, and re-reading a section never re-transcribes anything. A flagged
+result carries the same `Warning:` line here as it did at transcription time.
 
 ## What this is
 

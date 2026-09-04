@@ -41,7 +41,8 @@ Sections:
 Everything is on disk. The agent spent a filename, not the ~10,400 tokens that
 transcript would have cost it, and it knows where to look. Short recordings
 print inline instead, because a receipt for eight seconds of audio is worse
-than the audio.
+than the audio. Either way, a result the platform's quality gate flagged opens
+with a `Warning:` line that says why and whether it was charged.
 
 ## Commands
 
@@ -67,9 +68,8 @@ range you asked for. The bytes land in this process instead of in your agent's
 context, and re-reading a section never re-transcribes anything.
 
 When the platform's quality gate flagged a result as empty, sparse, or in a
-language the model does not support, `ot show` prints a `Warning:` line first
-with the reason and whether the job was charged. Empty and sparse results are
-not.
+language the model does not support, `ot show` prints the same `Warning:` line
+`ot transcribe` did, so a job read back later carries its verdict with it.
 
 ## Choosing a model
 

@@ -1,6 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildSections, formatSrt, formatVtt, summarize } from './output.js';
+import {
+  buildSections,
+  describeWarning,
+  formatSrt,
+  formatVtt,
+  summarize,
+} from './output.js';
+
+describe('describeWarning', () => {
+  /**
+   * Shared by `ot transcribe` and `ot show`, so the agent sees the same line
+   * whichever command handed it the result.
+   */
+  it('names the tier, every detail the gate recorded, and the charge', () => {
+    expect(
+      describeWarning({
+        tier: 'sparse',
+        billable: false,
+        reasonCode: 'low_word_density',
+        wordsPerMinute: 3,
+      })
+    ).toBe(
+      'Warning: the quality gate flagged this result as sparse (low_word_density, 3 words/min); not charged.'
+    );
+  });
+
+  it('says a language mismatch was charged, since the platform does not refund it', () => {
+    expect(
+      describeWarning({
+        tier: 'language_mismatch',
+        billable: true,
+        reasonCode: 'language_not_supported',
+        detectedLanguage: 'pt',
+      })
+    ).toBe(
+      'Warning: the quality gate flagged this result as language_mismatch (language_not_supported, detected pt); charged normally.'
+    );
+  });
+});
 
 const seg = (
   start: number,

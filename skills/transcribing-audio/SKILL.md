@@ -101,6 +101,12 @@ model, the artifact paths, and a section index of timestamps. This is
 deliberate. Read the sections to find what matters, then open just that part of
 the transcript file instead of loading the whole thing.
 
+**A `Warning:` first line**: the platform's quality gate flagged the result as
+empty, sparse, or in a language the model does not support. The line names the
+reason and whether the job was charged (empty and sparse are not). Report it to
+the user instead of treating the text as a good transcript. Both `ot transcribe`
+and `ot show` print it.
+
 ## When something goes wrong
 
 The command exits non-zero and prints one sentence saying what to do. Common
@@ -131,9 +137,9 @@ More detail in [references/troubleshooting.md](references/troubleshooting.md).
 - Do not transcribe the same file twice to "check" a result; it costs money and
   returns the same thing.
 - Do not pass `--model` a name you have not seen in `ot models`.
-- Do not treat a transcript as good when `ot show` opened with a `Warning:`
-  line. The platform flagged the result (empty, sparse, or the wrong language);
-  tell the user what it said.
+- Do not treat a transcript as good when `ot transcribe` or `ot show` opened
+  with a `Warning:` line. The platform flagged the result (empty, sparse, or the
+  wrong language); tell the user what it said.
 - Do not re-run with `--vocab` after seeing a misspelling in the output when you
   could have supplied the term the first time. Read the context for names before
   the first run, not after.

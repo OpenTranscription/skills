@@ -1,4 +1,4 @@
-import { OpenTranscription, type QualityWarning } from '@opentranscription/sdk';
+import { OpenTranscription } from '@opentranscription/sdk';
 
 import {
   defaultConfigDir,
@@ -6,7 +6,7 @@ import {
   resolveCredential,
 } from '../credentials.js';
 import { apiBaseUrl } from '../env.js';
-import { type Segment } from '../output.js';
+import { describeWarning, type Segment } from '../output.js';
 
 export type ShowOptions = {
   jobId: string;
@@ -30,27 +30,6 @@ export const parseTimecode = (value: string): number => {
   }
 
   return parts.reduce((total, part) => total * 60 + part, 0);
-};
-
-/**
- * One line the agent can act on: which check fired, why, and whether the job
- * cost anything — the platform refunds `empty` and `sparse` results.
- */
-const describeWarning = (warning: QualityWarning): string => {
-  const detail = [
-    warning.reasonCode,
-    warning.detectedLanguage
-      ? `detected ${warning.detectedLanguage}`
-      : undefined,
-    warning.wordsPerMinute === null || warning.wordsPerMinute === undefined
-      ? undefined
-      : `${warning.wordsPerMinute} words/min`,
-  ]
-    .filter(Boolean)
-    .join(', ');
-  const charge = warning.billable ? 'charged normally' : 'not charged';
-
-  return `Warning: the quality gate flagged this result as ${warning.tier} (${detail}); ${charge}.`;
 };
 
 /**
