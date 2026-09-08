@@ -74,9 +74,12 @@ CatalogModel = dict[str, Any]
 class NotGiven:
     """The absence of an argument, for parameters where `None` is a real value.
 
-    `audio_retention_days=None` means "retain indefinitely" and
-    `diarization=False` means "force diarization off". Neither can double as
-    "the caller said nothing", so the default has to be a third thing.
+    `audio_retention_days=None` means "retain indefinitely",
+    `diarization=False` means "force diarization off", and
+    `word_timestamps=False` means "do not store or return word timing". None of
+    them can double as "the caller said nothing", so the default has to be a
+    third thing, and NOT_GIVEN is the only one that leaves the server default
+    alone.
     """
 
     _instance: NotGiven | None = None

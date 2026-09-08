@@ -117,6 +117,24 @@ class TestTranscribe:
         assert body["webhook_url"] == "https://example.com/hook"
 
     @respx.mock
+    def test_declines_word_timing_only_when_asked(self, audio) -> None:
+        # The API defaults word timestamps ON, so `False` is the value worth
+        # sending. Saying nothing must stay silent: an explicit `True` narrows
+        # the router to models that promise word timing.
+        upload_route()
+        put_route()
+        create = create_route()
+
+        client().transcribe(audio, model="auto/best", word_timestamps=False)
+
+        assert sent_body(create)["word_timestamps"] is False
+
+        quiet = create_route()
+        client().transcribe(audio, model="auto/best")
+
+        assert "word_timestamps" not in sent_body(quiet)
+
+    @respx.mock
     def test_raises_when_the_storage_put_fails(self, audio) -> None:
         upload_route()
         respx.put(UPLOAD_URL).mock(return_value=httpx.Response(403))

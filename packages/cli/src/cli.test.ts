@@ -131,4 +131,13 @@ describe('main — flag parsing', () => {
       })
     );
   });
+
+  it('passes --no-word-timestamps through to the command', async () => {
+    const { code } = await run(['transcribe', 'a.mp3', '--no-word-timestamps']);
+
+    expect(code).toBe(0);
+    expect(transcribe).toHaveBeenCalledWith(
+      expect.objectContaining({ noWordTimestamps: true })
+    );
+  });
 });

@@ -298,6 +298,35 @@ describe('ot transcribe — unreadable input', () => {
     expect(client.transcribe).not.toHaveBeenCalled();
   });
 
+  it('declines word timing only when --no-word-timestamps was passed', async () => {
+    const off = fakeClient();
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      noWordTimestamps: true,
+      client: off as never,
+    });
+
+    expect(off.transcribe.mock.calls[0]![0]).toMatchObject({
+      wordTimestamps: false,
+    });
+
+    const silent = fakeClient();
+    await transcribe({
+      file: audio,
+      configDir: dir,
+      log,
+      client: silent as never,
+    });
+
+    // Not `wordTimestamps: true` — the server default is on, and saying so
+    // explicitly would narrow the router's candidate models for nobody.
+    expect(silent.transcribe.mock.calls[0]![0]).not.toHaveProperty(
+      'wordTimestamps'
+    );
+  });
+
   it('says a folder is a folder instead of printing EISDIR', async () => {
     const client = fakeClient();
 

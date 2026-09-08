@@ -466,6 +466,24 @@ describe('transcribe parameters', () => {
     expect(body.diarization).toBe(false);
     expect(body.audio_retention_days).toBeNull();
   });
+
+  it('declines word timing with word_timestamps: false', async () => {
+    // The API defaults this ON, so `false` is the only value worth sending —
+    // and it has to survive the same falsy-drop that would turn "do not store
+    // word timing" back into storing it.
+    const body = await bodySentFor({
+      model: 'auto/best',
+      wordTimestamps: false,
+    });
+
+    expect(body.word_timestamps).toBe(false);
+  });
+
+  it('says nothing about word timing when the caller did not ask', async () => {
+    const body = await bodySentFor({ model: 'auto/best' });
+
+    expect(body).not.toHaveProperty('word_timestamps');
+  });
 });
 
 describe('waitForJob', () => {

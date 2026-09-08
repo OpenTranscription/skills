@@ -66,6 +66,28 @@ async def test_transcribe_runs_the_whole_round_trip(audio) -> None:
 
 
 @respx.mock
+async def test_declines_word_timing_only_when_asked(audio) -> None:
+    respx.post(f"{BASE}/api/v1/uploads").mock(
+        return_value=httpx.Response(
+            200, json={"upload_url": UPLOAD_URL, "file_path": "org-1/interview.mp3"}
+        )
+    )
+    respx.put(UPLOAD_URL).mock(return_value=httpx.Response(200))
+    create = respx.post(f"{BASE}/api/v1/transcriptions").mock(
+        return_value=httpx.Response(200, json={"id": "job-1", "status": "uploaded"})
+    )
+
+    async with client() as ot:
+        await ot.transcribe(audio, model="auto/best", word_timestamps=False)
+
+    assert json.loads(create.calls.last.request.read()) == {
+        "file_path": "org-1/interview.mp3",
+        "model": "auto/best",
+        "word_timestamps": False,
+    }
+
+
+@respx.mock
 async def test_never_sends_the_api_key_to_the_storage_host(audio) -> None:
     respx.post(f"{BASE}/api/v1/uploads").mock(
         return_value=httpx.Response(

@@ -202,6 +202,7 @@ ot show <job-id>          a transcript, or --from 12:30 --to 18:00 of one
 
 ot transcribe <file>      the whole product
   --diarize               label speakers
+  --no-word-timestamps    skip word-level timing
   --model auto/best       or auto/cheapest, auto/fastest, or a model id
   --language es           skip language detection
   --vocab "Kafka,Sanjay"  names and jargon the model would otherwise miss

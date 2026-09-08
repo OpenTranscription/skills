@@ -31,6 +31,7 @@ Usage
     --model <id>               e.g. auto/best, auto/cheapest, auto/fastest
     --language <code>          force a language instead of detecting it
     --diarize                  label speakers
+    --no-word-timestamps       skip word-level timing
     --vocab <words>            comma-separated jargon, names, product terms
     --vocab-list <id>          a vocabulary list saved in the web app
     --out <dir>                write artifacts somewhere else
@@ -48,6 +49,7 @@ const options = {
   'vocab-list': { type: 'string' },
   out: { type: 'string' },
   diarize: { type: 'boolean' },
+  'no-word-timestamps': { type: 'boolean' },
   all: { type: 'boolean' },
   limit: { type: 'string' },
   from: { type: 'string' },
@@ -145,6 +147,7 @@ export const main = async (argv: string[]): Promise<number> => {
         vocabList: values['vocab-list'],
         outDir: values.out,
         diarize: values.diarize,
+        noWordTimestamps: values['no-word-timestamps'],
       });
     }
 

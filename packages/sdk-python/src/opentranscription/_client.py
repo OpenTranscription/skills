@@ -131,6 +131,7 @@ class OpenTranscription:
         models: Sequence[str] | NotGiven = NOT_GIVEN,
         language: str | NotGiven = NOT_GIVEN,
         diarization: bool | NotGiven = NOT_GIVEN,
+        word_timestamps: bool | NotGiven = NOT_GIVEN,
         custom_words: Sequence[str] | NotGiven = NOT_GIVEN,
         vocabulary_list_id: str | NotGiven = NOT_GIVEN,
         code_switching: bool | NotGiven = NOT_GIVEN,
@@ -152,8 +153,11 @@ class OpenTranscription:
 
         Every parameter left out is left out of the request, which is not the
         same as sending `None`: `audio_retention_days=None` asks the API to keep
-        the audio indefinitely, and `diarization=False` forces speaker labels
-        off on a model that would otherwise add them.
+        the audio indefinitely, `diarization=False` forces speaker labels off on
+        a model that would otherwise add them, and `word_timestamps=False`
+        declines word timing, which comes back as `word_timestamps="disabled"`
+        and a null `words` on the transcript. Omitting any of them leaves the
+        server default in force.
 
         Returns the job, which starts out `uploaded`. Follow it with `wait_for_job`,
         or give `webhook_url` and let the completed event come to you.
@@ -199,6 +203,7 @@ class OpenTranscription:
                 "models": models,
                 "language": language,
                 "diarization": diarization,
+                "word_timestamps": word_timestamps,
                 "custom_words": custom_words,
                 "vocabulary_list_id": vocabulary_list_id,
                 "code_switching": code_switching,

@@ -46,6 +46,7 @@ Useful flags:
 | Flag                    | When                                                  |
 | ----------------------- | ----------------------------------------------------- |
 | `--diarize`             | more than one speaker, or the user asks who said what |
+| `--no-word-timestamps`  | the user only wants prose, and no word timing stored  |
 | `--model auto/best`     | accuracy matters more than cost                       |
 | `--model auto/cheapest` | long file, rough transcript is fine                   |
 | `--model auto/fastest`  | the user is waiting on the result                     |
@@ -89,8 +90,16 @@ instead of failing, so passing them is always safe.
 Artifacts are always written next to the audio (or to `--out`):
 
 - `<name>.transcript.md`: the text, with speaker labels when diarized
-- `<name>.json`: the full job, including per-word timings
+- `<name>.json`: the full job, including per-word timing
 - `<name>.srt` / `<name>.vtt`: subtitles, when the model returned segments
+
+Inside the JSON, `transcript.word_timestamps` says whether word timing is there:
+`available` (`transcript.words` is an array, and so is each
+`transcript.segments[].words`), `unavailable` (the model returned none), or
+`disabled` (`--no-word-timestamps` was passed). `transcript.words` is `null` for
+both of the last two, so check the status before iterating it. Each word is
+`{ text, start, end, confidence }`, plus `speaker` when diarized. The key is
+`text`, not `word`.
 
 **Short audio**: the transcript is printed directly. Use it. The cutoff is about
 2,000 tokens of transcript, so most recordings under ten minutes come back this

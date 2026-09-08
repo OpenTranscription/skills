@@ -451,11 +451,13 @@ export interface components {
             text: string;
             /** @description Speaker label if diarization was enabled (e.g. `A`, `B`). Null otherwise. */
             speaker?: string | null;
+            /** @description Word-level timing for this segment. `[]` when the transcript's `word_timestamps` is not `available`. */
+            words?: components["schemas"]["TranscriptionWord"][];
         };
         /** @description Word-level timing and confidence. */
         TranscriptionWord: {
             /** @description The transcribed word. */
-            word: string;
+            text: string;
             /**
              * Format: float
              * @description Word start time in seconds.
@@ -468,9 +470,9 @@ export interface components {
             end: number;
             /**
              * Format: float
-             * @description Confidence score (0.0–1.0). Not always provided by all models.
+             * @description Confidence score (0.0–1.0). Always present; some models fill a placeholder value.
              */
-            confidence?: number;
+            confidence: number;
             /** @description Speaker label if diarization was enabled. */
             speaker?: string;
         };
@@ -487,8 +489,13 @@ export interface components {
             confidence?: number | null;
             /** @description Time-aligned segments. Null if the model does not support segment-level output. */
             segments?: components["schemas"]["TranscriptionSegment"][] | null;
-            /** @description Word-level timing. Null if the model does not support word timestamps. */
+            /** @description Word-level timing. An array when `word_timestamps` is `available`; `null` when it is `unavailable` (the model returned no usable word timings) or `disabled` (the caller set `word_timestamps: false`). */
             words?: components["schemas"]["TranscriptionWord"][] | null;
+            /**
+             * @description Status of word-level timing for this transcript. `available`: `words` and `segments[].words` are populated. `unavailable`: the model returned no words, or every word had zero timing. `disabled`: the caller requested `word_timestamps: false` on the create call.
+             * @enum {string}
+             */
+            word_timestamps?: "available" | "unavailable" | "disabled";
         };
         /**
          * @description Request body for creating a transcription job.
@@ -527,6 +534,11 @@ export interface components {
             language?: string;
             /** @description Enable speaker diarization. `true` forces on, `false` forces off, omit to use the model's default. When using `router`, models that don't support diarization are excluded from candidates. */
             diarization?: boolean;
+            /**
+             * @description Enable word-level timestamps. Defaults to `true`. The resulting transcript's `word_timestamps` field reports one of three statuses: `available` (words were returned), `unavailable` (the model returned no usable word timings), or `disabled` (this was set to `false`). When using `router`, an explicit `true` excludes candidate models that don't support word timestamps.
+             * @default true
+             */
+            word_timestamps: boolean;
             /**
              * @description Route this job through your organization's BYOK provider API key. Requires a key configured in settings. A 5% routing fee (of equivalent provider cost) is charged to platform credits; the first 100 minutes/month per org are free. A negative credit balance blocks new jobs.
              * @default false
@@ -1568,12 +1580,13 @@ export interface operations {
                      *         ],
                      *         "words": [
                      *           {
-                     *             "word": "Hello",
+                     *             "text": "Hello",
                      *             "start": 0,
                      *             "end": 0.5,
                      *             "confidence": 0.99
                      *           }
-                     *         ]
+                     *         ],
+                     *         "word_timestamps": "available"
                      *       }
                      *     }
                      */

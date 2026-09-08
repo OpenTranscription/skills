@@ -63,6 +63,7 @@ own default applies.
 | `models`                           | Two to five ids: primary first, backups tried in order when one fails.                                                                                                   |
 | `language`                         | ISO 639-1, two letters. Omit to let the model detect it.                                                                                                                 |
 | `diarization`                      | `true` forces speaker labels on, `false` forces them off, omitted follows the model's own default.                                                                       |
+| `wordTimestamps`                   | `false` declines word timing: the transcript comes back `word_timestamps: 'disabled'` with a null `words`. Omitted leaves the server default, which is on.               |
 | `customWords`                      | Up to 1000 terms, 100 characters each. Only models whose `capabilities.features` list `custom_vocabulary` read them; the rest ignore them instead of failing.            |
 | `vocabularyListId`                 | A list saved in the web app, under Settings then Vocabulary. Merged with `customWords` when both are given.                                                              |
 | `codeSwitching`                    | Audio that changes language mid-sentence.                                                                                                                                |

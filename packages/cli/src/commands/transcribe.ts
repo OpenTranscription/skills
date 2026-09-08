@@ -23,6 +23,8 @@ export type TranscribeOptions = {
   model?: string | undefined;
   language?: string | undefined;
   diarize?: boolean | undefined;
+  /** `true` declines word timing. Absent leaves the API default, which is on. */
+  noWordTimestamps?: boolean | undefined;
   /** Comma-separated terms to bias the model toward. */
   vocab?: string | undefined;
   /** Id of a vocabulary list saved in the web app. */
@@ -128,6 +130,10 @@ export const transcribe = async (
     ...(options.model ? { model: options.model } : {}),
     ...(options.language ? { language: options.language } : {}),
     ...(options.diarize === undefined ? {} : { diarization: options.diarize }),
+    // One-way: the flag only ever turns word timing OFF. Sending `true` when it
+    // is absent would narrow the router to models that promise word timestamps,
+    // which is not what saying nothing means.
+    ...(options.noWordTimestamps ? { wordTimestamps: false } : {}),
     ...(options.vocab ? { customWords: parseVocab(options.vocab) } : {}),
     ...(options.vocabList ? { vocabularyListId: options.vocabList } : {}),
   });

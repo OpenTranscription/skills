@@ -64,6 +64,7 @@ const REQUEST_FIELDS = {
   models: 'models',
   language: 'language',
   diarization: 'diarization',
+  wordTimestamps: 'word_timestamps',
   customWords: 'custom_words',
   vocabularyListId: 'vocabulary_list_id',
   codeSwitching: 'code_switching',
@@ -125,6 +126,14 @@ export type TranscribeInput = {
    * would otherwise enable it, omitted follows the model's own default.
    */
   diarization?: boolean;
+
+  /**
+   * Word-level timing. `false` declines it: the API neither stores nor returns
+   * word timing, and the transcript comes back with
+   * `word_timestamps: 'disabled'` and a null `words`. Omitted means the server
+   * default, which is on.
+   */
+  wordTimestamps?: boolean;
 
   /**
    * Terms to bias the model toward: product names, jargon, people. This is what
