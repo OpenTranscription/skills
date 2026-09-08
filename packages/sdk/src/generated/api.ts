@@ -532,7 +532,7 @@ export interface components {
              * @example en
              */
             language?: string;
-            /** @description Enable speaker diarization. `true` forces on, `false` forces off, omit to use the model's default. When using `router`, models that don't support diarization are excluded from candidates. */
+            /** @description Enable speaker diarization. `true` forces on, `false` forces off, omit to use the model's default — except on a model whose provider cannot return word timestamps and speaker labels together (`mistral/voxtral-mini-transcribe`), where an omitted value stays off unless `word_timestamps` is `false`. When using `router`, models that don't support diarization are excluded from candidates. */
             diarization?: boolean;
             /**
              * @description Enable word-level timestamps. Defaults to `true`. The resulting transcript's `word_timestamps` field reports one of three statuses: `available` (words were returned), `unavailable` (the model returned no usable word timings), or `disabled` (this was set to `false`). When using `router`, an explicit `true` excludes candidate models that don't support word timestamps.
