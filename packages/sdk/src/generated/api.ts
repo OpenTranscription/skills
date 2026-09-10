@@ -424,9 +424,30 @@ export interface components {
             details?: Record<string, never>[];
             /**
              * Format: uri
-             * @description Present on 400 responses — where this request's contract is defined. Deep-links to the request schema when the endpoint has one (e.g. `#/components/schemas/CreateTranscriptionRequest`), otherwise points at this document.
+             * @description Present on 400 responses, the 402 payment-required response, and the 404 returned for an unmatched API path — never on a resource-specific 404 such as "Job not found". Deep-links to the relevant schema when the endpoint has one (e.g. `#/components/schemas/CreateTranscriptionRequest`, `#/components/schemas/PaymentRequired`), otherwise points at this document.
              */
             documentation_url?: string;
+        };
+        PaymentRequired: components["schemas"]["ErrorResponse"] & {
+            /**
+             * @description Machine-readable error code. Branch on this, never on `error`.
+             * @enum {string}
+             */
+            code: "INSUFFICIENT_CREDITS" | "NEGATIVE_BALANCE" | "FREE_MINUTES_EXHAUSTED";
+            /** @description The organization's credit balance at the moment of refusal. 1 credit = $0.01. */
+            balance_credits: number;
+            /** @description Credits the refused request would have cost. */
+            required_credits: number;
+            /**
+             * Format: uri
+             * @description Where a human can add credits. Requires a signed-in browser session; it is not a Stripe Checkout link.
+             */
+            checkout_url: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 timestamp when free minutes reset. Present only when `code` is `FREE_MINUTES_EXHAUSTED`.
+             */
+            reset_at?: string;
         };
         /**
          * @description Lifecycle state of a transcription job.
@@ -1320,15 +1341,15 @@ export interface components {
             content: {
                 /**
                  * @example {
-                 *       "error": "Insufficient credits. Please add credits to your account."
+                 *       "error": "Outstanding balance. Please add credits to continue.",
+                 *       "code": "NEGATIVE_BALANCE",
+                 *       "balance_credits": -12.35,
+                 *       "required_credits": 75.5,
+                 *       "checkout_url": "https://opentranscription.io/settings/billing?utm_source=api_402&utm_medium=api&credits=800",
+                 *       "documentation_url": "https://opentranscription.io/openapi.json#/components/schemas/PaymentRequired"
                  *     }
                  */
-                "application/json": components["schemas"]["ErrorResponse"] & {
-                    /** @description Machine-readable error code. `FREE_MINUTES_EXHAUSTED` when the monthly free allowance is used up. `NEGATIVE_BALANCE` when the organization has an outstanding BYOK fee overdraft. */
-                    code?: string;
-                    /** @description ISO 8601 date when free minutes reset. Present when `code` is `FREE_MINUTES_EXHAUSTED`. */
-                    reset_at?: string;
-                };
+                "application/json": components["schemas"]["PaymentRequired"];
             };
         };
         /** @description Too many requests — rate limit exceeded. */
