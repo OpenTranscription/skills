@@ -5,6 +5,7 @@ export {
   JobFailedError,
   OpenTranscription,
   type OpenTranscriptionOptions,
+  type PaymentDetails,
   type QualityWarning,
   type TranscribeInput,
   type WaitOptions,

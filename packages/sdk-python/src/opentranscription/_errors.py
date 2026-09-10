@@ -20,12 +20,24 @@ class ApiError(OpenTranscriptionError):
     `code` is the machine-readable cause when the API sent one. Branch on it
     rather than on `str(error)`, which is prose and may be translated or
     reworded.
+
+    `payment` is set only on a 402 that says what the request would have cost:
+    `balance_credits` and `required_credits` (1 credit = $0.01), `checkout_url`
+    (a billing page that needs a signed-in browser, not a payment link) and,
+    when free minutes ran out, `reset_at`. It is `None` everywhere else.
     """
 
-    def __init__(self, message: str, status: int, code: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status: int,
+        code: str | None = None,
+        payment: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.status = status
         self.code = code
+        self.payment = payment
 
 
 class JobFailedError(OpenTranscriptionError):

@@ -191,6 +191,73 @@ describe('transcribe', () => {
       client(fetch).transcribe({ file: new Uint8Array([1]), fileName: 'a.mp3' })
     ).rejects.toMatchObject({ status: 402, code: 'FREE_MINUTES_EXHAUSTED' });
   });
+
+  it('carries the 402 payment details a caller needs to send the user to add credits', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/uploads': () =>
+        json(
+          {
+            error: 'Outstanding balance. Please add credits to continue.',
+            code: 'NEGATIVE_BALANCE',
+            balance_credits: -12.35,
+            required_credits: 75.5,
+            checkout_url:
+              'https://opentranscription.io/settings/billing?credits=800',
+          },
+          402
+        ),
+    });
+
+    const error = await client(fetch)
+      .transcribe({ file: new Uint8Array([1]), fileName: 'a.mp3' })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).payment).toEqual({
+      balance_credits: -12.35,
+      required_credits: 75.5,
+      checkout_url: 'https://opentranscription.io/settings/billing?credits=800',
+    });
+  });
+
+  it('passes reset_at through when free minutes ran out', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/uploads': () =>
+        json(
+          {
+            error: 'Free minutes exhausted.',
+            code: 'FREE_MINUTES_EXHAUSTED',
+            balance_credits: 0,
+            required_credits: 30,
+            checkout_url: 'https://opentranscription.io/settings/billing',
+            reset_at: '2026-10-01T00:00:00.000Z',
+          },
+          402
+        ),
+    });
+
+    await expect(
+      client(fetch).transcribe({ file: new Uint8Array([1]), fileName: 'a.mp3' })
+    ).rejects.toMatchObject({
+      payment: { reset_at: '2026-10-01T00:00:00.000Z' },
+    });
+  });
+
+  it('leaves payment undefined when a 402 predates the payment fields', async () => {
+    const { fetch } = stubFetch({
+      '/api/v1/uploads': () =>
+        json(
+          { error: 'Insufficient credits.', code: 'INSUFFICIENT_CREDITS' },
+          402
+        ),
+    });
+
+    const error = await client(fetch)
+      .transcribe({ file: new Uint8Array([1]), fileName: 'a.mp3' })
+      .catch((caught: unknown) => caught);
+
+    expect((error as ApiError).payment).toBeUndefined();
+  });
 });
 
 describe('rate limiting', () => {

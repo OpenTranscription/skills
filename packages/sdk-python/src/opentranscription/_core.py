@@ -197,7 +197,35 @@ def api_error(response: httpx.Response) -> ApiError:
         message if isinstance(message, str) else response.reason_phrase,
         response.status_code,
         code if isinstance(code, str) else None,
+        _payment_details(body) if response.status_code == 402 else None,
     )
+
+
+def _payment_details(body: dict[str, Any]) -> dict[str, Any] | None:
+    """The payment fields of a 402 body, or `None` when it lacks them.
+
+    An older API sent only `error` and `code`, so a missing field means there
+    is nothing to report rather than a malformed response.
+    """
+    balance = body.get("balance_credits")
+    required = body.get("required_credits")
+    checkout_url = body.get("checkout_url")
+    if not (
+        isinstance(balance, (int, float))
+        and isinstance(required, (int, float))
+        and isinstance(checkout_url, str)
+    ):
+        return None
+
+    details: dict[str, Any] = {
+        "balance_credits": balance,
+        "required_credits": required,
+        "checkout_url": checkout_url,
+    }
+    reset_at = body.get("reset_at")
+    if isinstance(reset_at, str):
+        details["reset_at"] = reset_at
+    return details
 
 
 def success_body(response: httpx.Response) -> dict[str, Any]:

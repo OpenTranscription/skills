@@ -247,20 +247,63 @@ export type WaitOptions = {
 };
 
 /**
+ * What a 402 says about the refusal. Picked from the generated spec type, so a
+ * field the API renames stops compiling here. Credits are hundredths of a
+ * dollar; `checkout_url` is a billing page that needs a signed-in browser
+ * session, not a payment link; `reset_at` is present only when free minutes
+ * ran out.
+ */
+export type PaymentDetails = Pick<
+  components['schemas']['PaymentRequired'],
+  'balance_credits' | 'required_credits' | 'checkout_url' | 'reset_at'
+>;
+
+/**
+ * The payment fields of a 402 body, or `undefined` when it lacks them: an
+ * older API sent only `error` and `code`.
+ */
+const paymentDetails = (
+  body: Record<string, unknown>
+): PaymentDetails | undefined => {
+  const { balance_credits, required_credits, checkout_url, reset_at } = body;
+  if (
+    typeof balance_credits !== 'number' ||
+    typeof required_credits !== 'number' ||
+    typeof checkout_url !== 'string'
+  ) {
+    return undefined;
+  }
+  return {
+    balance_credits,
+    required_credits,
+    checkout_url,
+    ...(typeof reset_at === 'string' ? { reset_at } : {}),
+  };
+};
+
+/**
  * A response the API did not accept, carrying whatever it told us. Usually a
  * non-2xx status; also a 2xx whose body is not JSON, which means the request
  * reached something other than the API (see `#api`). `status` is the HTTP
- * status either way.
+ * status either way. `payment` is set only on a 402 that says what the
+ * request would have cost and where the user can add credits.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
+  readonly payment: PaymentDetails | undefined;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    payment?: PaymentDetails
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.payment = payment;
   }
 }
 
@@ -377,7 +420,8 @@ export class OpenTranscription {
       throw new ApiError(
         typeof body.error === 'string' ? body.error : response.statusText,
         response.status,
-        typeof body.code === 'string' ? body.code : undefined
+        typeof body.code === 'string' ? body.code : undefined,
+        response.status === 402 ? paymentDetails(body) : undefined
       );
     }
   }

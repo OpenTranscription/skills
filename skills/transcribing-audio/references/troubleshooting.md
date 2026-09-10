@@ -42,9 +42,12 @@ Every flag that takes a value needs one, and unknown flags are an error rather
 than ignored, so a typo cannot silently drop `--language` or `--out`. The
 command stops before doing anything; exit code 2.
 
-**"Free minutes exhausted" / "Insufficient credits."**
+**"Free minutes exhausted" / "Insufficient credits" / "Outstanding balance."**
 Billing is per second of audio. Free minutes reset monthly; credits do not
-expire on a schedule. Both are topped up on the web app; the CLI cannot do it.
+expire on a schedule. The error prints the balance, what the request would
+cost, the reset date when free minutes ran out, and an `Add credits` link.
+Give the user that link: it opens the billing page, which needs them signed in
+on the web, and the CLI cannot top up.
 
 **The job failed.**
 The output includes a machine-readable code. `AUDIO_DECODE_FAILED` usually means

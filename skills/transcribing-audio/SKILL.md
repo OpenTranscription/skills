@@ -124,7 +124,8 @@ cases:
 - **not signed in** → `ot login`
 - **no credential for that workspace** → `ot login --org <id>`; never retry with
   a different workspace, the command refuses on purpose
-- **out of credits or free minutes** → the user has to add credits on the web app
+- **out of credits or free minutes** → give the user the printed `Add credits`
+  link; only they can top up, signed in on the web app
 - **file too large** → the API caps uploads at 100 MiB; split the file or
   re-encode it smaller
 - **video file** → the API takes audio only; extract first with

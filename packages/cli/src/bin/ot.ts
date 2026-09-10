@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { main } from '../cli.js';
-import { MissingCredentialError } from '../credentials.js';
-import { DeviceFlowError } from '../deviceFlow.js';
+import { describeError } from '../errorMessage.js';
 
 /**
  * Every expected failure becomes a plain sentence and a non-zero exit. An agent
@@ -13,17 +12,6 @@ main(process.argv.slice(2))
     process.exitCode = code;
   })
   .catch((error: unknown) => {
-    if (
-      error instanceof MissingCredentialError ||
-      error instanceof DeviceFlowError
-    ) {
-      console.error(error.message);
-      process.exitCode = 1;
-      return;
-    }
-
-    console.error(
-      error instanceof Error ? error.message : 'Something went wrong.'
-    );
+    console.error(describeError(error));
     process.exitCode = 1;
   });

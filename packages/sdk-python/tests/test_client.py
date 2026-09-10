@@ -169,6 +169,34 @@ class TestErrors:
         assert caught.value.status == 402
         assert caught.value.code == "insufficient_credits"
         assert "Insufficient credits" in str(caught.value)
+        # An older API sent no balance, so there is nothing to report.
+        assert caught.value.payment is None
+
+    @respx.mock
+    def test_a_402_carries_what_the_user_needs_to_add_credits(self) -> None:
+        respx.get(f"{BASE}/api/v1/transcriptions/job-1").mock(
+            return_value=httpx.Response(
+                402,
+                json={
+                    "error": "Free minutes exhausted.",
+                    "code": "FREE_MINUTES_EXHAUSTED",
+                    "balance_credits": -12.35,
+                    "required_credits": 75.5,
+                    "checkout_url": "https://opentranscription.io/settings/billing",
+                    "reset_at": "2026-10-01T00:00:00.000Z",
+                },
+            )
+        )
+
+        with pytest.raises(ApiError) as caught:
+            client().get_job("job-1")
+
+        assert caught.value.payment == {
+            "balance_credits": -12.35,
+            "required_credits": 75.5,
+            "checkout_url": "https://opentranscription.io/settings/billing",
+            "reset_at": "2026-10-01T00:00:00.000Z",
+        }
 
     @respx.mock
     def test_falls_back_to_the_status_text_when_the_body_is_not_json(self) -> None:
